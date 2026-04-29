@@ -6,7 +6,18 @@ set repo="SOLPS-ITER"
 git fetch --prune
 git checkout feature/wg-release && echo "Checked out SOLPS-ITER WG-release branch" || goto branch
 git submodule init
-git submodule update || git -c submodule.ADAS.update=none submodule update
+set adas_url = `git config -f .gitmodules --get submodule.ADAS.url`
+set adas_available = 0
+if ("$adas_url" != "") then
+  env GIT_SSH_COMMAND="ssh -o BatchMode=yes -o ConnectTimeout=5 -o ConnectionAttempts=1" git ls-remote --exit-code "$adas_url" HEAD >& /dev/null
+  if ($status == 0) set adas_available = 1
+endif
+if ($adas_available) then
+  git submodule update
+else
+  echo "Skipping ADAS submodule update; using local ADAS datafile fallback."
+  git -c submodule.ADAS.update=none submodule update
+endif
 git pull && goto b25 || goto local
 
 b25:
@@ -86,4 +97,3 @@ compile:
   ${MAKE} depend depend_debug
   ${MAKE} tags
   ${MAKE} solps MAKE_OPTIONS=-j8
-
