@@ -17,6 +17,9 @@
 #   3. output of `whereami` script
 #   4. fallback to UNKNOWN
 #
+# SETUP/setup.csh.HOST_NAME.COMPILER.pre is sourced after HOST_NAME and
+# COMPILER are determined, before any environment cache is loaded.
+#
 # Variable COMPILER is determined with decreasing priority from:
 #   1. First argument to `source setup.csh` command
 #   2. $SOLPS_COMPILER_FORCE
@@ -106,12 +109,25 @@ endif
 
 limit stacksize unlimited
 
+set setup_pre_cache=${SOLPSTOP}/SETUP/setup.csh.${HOST_NAME}.${COMPILER}.pre
+if (-s $setup_pre_cache) then
+  echo Loading SETUP/setup.csh.${HOST_NAME}.${COMPILER}.pre.
+  source $setup_pre_cache
+endif
+
+set cache_enabled = 0
+if (`uname` != "Darwin" && ${HOST_NAME} != "LINUX" && ! $?SOLPS_DISABLE_ENV_CACHE) then
+  set cache_enabled = 1
+endif
+
 # Load environment cache if it exists and the setup files have not changed
-if (`uname` != "Darwin" && ${HOST_NAME} != "LINUX") then   # Assuming to work on some HPC cluster
+if ($cache_enabled) then   # Assuming to work on some HPC cluster
   set setup=${SOLPSTOP}/SETUP/setup.csh.${HOST_NAME}.${COMPILER}
   if ((-f $setup.env.local.${USER}) && \
       ( -M $setup.env.local.${USER} ) >= ( -M $setup ) && \
       ( -M $setup.env.local.${USER} ) >= ( -M ${SOLPSTOP}/setup.csh ) && \
+      (!(-f $setup_pre_cache) || \
+        ( -M $setup.env.local.${USER} ) >= ( -M $setup_pre_cache )) && \
       (!(-f ${SOLPSTOP}/SETUP/setup.csh.local) || \
         ( -M $setup.env.local.${USER} ) >= ( -M ${SOLPSTOP}/SETUP/setup.csh.local )) && \
       (!(-f $setup.local) || ( -M $setup.env.local.${USER} ) >= ( -M $setup.local ))) then
@@ -354,7 +370,7 @@ if (-s ${SOLPSTOP}/SETUP/setup.csh.local) then
 endif
 
 # Create environment cache for faster loading (setenv, unsetenv, and aliases)
-if (`uname` != "Darwin" && ${HOST_NAME} != "LINUX") then   # Assuming to work on some HPC cluster
+if ($cache_enabled) then   # Assuming to work on some HPC cluster
   set setup_post = `mktemp`
   env | sed -ne "/^[ }]\|=()/b; s/\([^=]*\)=\(.*\)/setenv \1 '\2'/p" \
      -e '1i# Generated environment cache. Do not edit!' >! $setup_post
@@ -373,6 +389,6 @@ if (`uname` != "Darwin" && ${HOST_NAME} != "LINUX") then   # Assuming to work on
 endif
 
 # List loaded modules, assuming to work on some HPC cluster
-if (`uname` != "Darwin" && ${HOST_NAME} != "LINUX") then
+if ($cache_enabled) then
   module list
 endif
