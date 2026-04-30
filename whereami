@@ -103,7 +103,7 @@ case "cori*":
   breaksw
 case "*.ornl.gov":
 case "jlore2025":
-case "eos":
+case "eos*":
 case "fusion3":
 case "ultrabucky*":
   echo ORNL

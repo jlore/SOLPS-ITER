@@ -11,7 +11,7 @@ if (! $?ORNL_SYSTEM) then
       setenv ORNL_SYSTEM WSL
       breaksw
     case EOS:
-    case eos:
+    case eos*:
       setenv ORNL_SYSTEM EOS
       breaksw
     case ultrabucky:
