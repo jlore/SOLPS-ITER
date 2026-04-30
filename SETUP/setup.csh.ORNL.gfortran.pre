@@ -1,0 +1,7 @@
+# Early ORNL/gfortran setup.
+#
+# The SOLPS environment cache is convenient on some clusters, but it hides
+# changes while we are maintaining several ORNL machine setups in one checkout.
+# Disable it here, before the main setup script has a chance to read a cache.
+
+setenv SOLPS_DISABLE_ENV_CACHE 1
