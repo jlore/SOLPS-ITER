@@ -6,7 +6,7 @@ set repo="SOLPS-ITER"
 if ( $?SOLPS_ORNL_BRANCH ) then
   set ornl_branch = $SOLPS_ORNL_BRANCH
 else
-  set ornl_branch = ornl-multisystem-setup
+  set ornl_branch = wg-release-ornl
 endif
 
 echo "Switching to SOLPS-ITER ORNL branch ${ornl_branch}"
@@ -29,7 +29,7 @@ Eirene:
   cd $SOLPSTOP/modules/Eirene
   set repo="Eirene"
   git fetch --prune
-  git checkout SOLPS_develop && echo "Checked out Eirene SOLPS_develop branch" || goto branch
+  git checkout SOLPS_develop-ornl && echo "Checked out Eirene SOLPS_develop-ornl branch" || goto branch
   git pull && goto Carre || goto local
 
 Carre:
