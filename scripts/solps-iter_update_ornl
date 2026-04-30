@@ -12,9 +12,9 @@ endif
 echo "Switching to SOLPS-ITER ORNL branch ${ornl_branch}"
 git fetch --prune
 git checkout ${ornl_branch} && echo "Checked out SOLPS-ITER ORNL branch ${ornl_branch}" || goto branch
-git submodule init
-git submodule update || git -c submodule.ADAS.update=none submodule update
-git pull && goto b25 || goto local
+git pull || goto local
+git submodule sync -- modules/B2.5 modules/Carre modules/Carre2 modules/DivGeo modules/Eirene
+git submodule update --init --checkout modules/B2.5 modules/Carre modules/Carre2 modules/DivGeo modules/Eirene && goto b25 || goto local
 
 b25:
   echo "Updating B2.5"
@@ -42,11 +42,6 @@ Carre:
 
 Carre2:
   echo "Updating Carre2"
-  if (! -d $SOLPSTOP/modules/Carre2) then
-    git clone git@github.com:iterorganization/CARRE.git $SOLPSTOP/modules/Carre2
-    git submodule init
-    git submodule update
-  endif
   cd $SOLPSTOP/modules/Carre2
   set repo="Carre2"
   git fetch --prune
@@ -63,6 +58,17 @@ DivGeo:
 
 ADAS:
   echo "Updating ADAS"
+  set adas_url = `git config -f $SOLPSTOP/.gitmodules --get submodule.ADAS.url`
+  set adas_available = 0
+  if ("$adas_url" != "") then
+    env GIT_SSH_COMMAND="ssh -o BatchMode=yes -o ConnectTimeout=5 -o ConnectionAttempts=1" git ls-remote --exit-code "$adas_url" HEAD >& /dev/null
+    if ($status == 0) set adas_available = 1
+  endif
+  if ($adas_available) then
+    cd $SOLPSTOP
+    git submodule update --init --checkout modules/adas || goto local
+  endif
+
   if (-s $SOLPSTOP/modules/adas/.gitattributes) then
     cd $SOLPSTOP/modules/adas
     set repo="ADAS"
