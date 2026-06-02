@@ -182,8 +182,29 @@ argloop:
       source $SOLPSTOP/SETUP/mpi
       set MPI_SET=yes
     endif
+    set first_mpi_arg="$1"
     set TMPI=`echo $argv | sed -e 's:^"::' -e 's:" .*::' -e 's:"$::' `
-    set nargs=`echo $TMPI | awk '{print split($0,args," ")}'`
+    set nargs=`echo "$first_mpi_arg" | awk '{print split($0,args," ")}'`
+    if ($nargs > 1) then
+      set nargs=1
+    else
+      set nargs=`echo $TMPI | awk '{print split($0,args," ")}'`
+    endif
+    if ($?SOLPS_MPIRUN) then
+      if ("X${SOLPS_MPIRUN}X" != "XX") then
+        set mpi_launcher=`echo "$TMPI" | awk '{print $1}'`
+        set mpi_launcher_base=`basename "$mpi_launcher"`
+        if ("X${mpi_launcher_base}X" == "XmpirunX" || \
+            "X${mpi_launcher_base}X" == "XmpiexecX") then
+          set mpi_args=`echo "$TMPI" | cut -d ' ' -f 2-`
+          if ("X${mpi_args}X" == "X${TMPI}X") then
+            set TMPI="$SOLPS_MPIRUN"
+          else
+            set TMPI="$SOLPS_MPIRUN $mpi_args"
+          endif
+        endif
+      endif
+    endif
     if ("X${TIME}X" == "XtimeX") then
       set TIME="$TMPI"
     else

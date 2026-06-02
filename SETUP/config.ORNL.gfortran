@@ -31,11 +31,18 @@ endif
 
 LD_NETCDF ?= -L${NETCDF_F_ROOT}/lib -lnetcdff -L${NETCDF_C_ROOT}/lib -lnetcdf
 
-LD_NAG     = -L${NAGDIR} -l${LAPACK_LIB} -L${BLAS_DIR} -l${BLAS_LIB}
+ifneq ($(wildcard $(MKLROOT)),)
+  $(info ORNL config: PARDISO enabled using MKLROOT=${MKLROOT})
+  MKL_LIB_DIR ?= ${MKLROOT}/lib
+  LD_NAG      = -L${MKL_LIB_DIR} -lmkl_gf_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
+else
+  $(info ORNL config: PARDISO disabled; MKLROOT is not set or does not exist)
+  LD_NAG      = -L${NAGDIR} -l${LAPACK_LIB} -L${BLAS_DIR} -l${BLAS_LIB}
+endif
 LD_MSCL    = -L${MSCL_ROOT} -lmscl
 LD_GR      = -L${GR_ROOT} -lgr
 LD_GKS     = -L${GLI_HOME} -lgks
-LD_NCARG   = -L${NCARG_ROOT}/lib -lncarg -lncarg_gks -lncarg_c -lX11 -lm -lgfortran -lcairo -lgcc_s -lfreetype
+LD_NCARG   = ${NCARG_ROOT}/lib/libncarg.a ${NCARG_ROOT}/lib/libncarg_gks.a ${NCARG_ROOT}/lib/libncarg_c.a -L/usr/lib/x86_64-linux-gnu -lX11 -lm -lgfortran -lcairo -lgcc_s -lfreetype
 LD_MDSPLUS =
 LD_SONNET  = -L${SOLPSLIB} -lsonnet -lstdc++ -lC
 

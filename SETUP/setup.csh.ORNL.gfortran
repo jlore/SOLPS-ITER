@@ -42,6 +42,7 @@ switch ("$ORNL_SYSTEM")
     setenv FC gfortran
     setenv CXX g++
     setenv MPI_FC /usr/bin/mpif90
+    setenv SOLPS_MPIRUN /usr/bin/mpirun
     alias ls 'ls --color=auto'
     setenv NO_MANUAL
 
@@ -85,6 +86,21 @@ switch ("$ORNL_SYSTEM")
 
     setenv BLAS_DIR /usr/lib/x86_64-linux-gnu
     setenv NAG_DIR /usr/lib/x86_64-linux-gnu
+    if (! $?MKLROOT && -d /opt/intel/oneapi/mkl/latest) then
+      setenv MKLROOT /opt/intel/oneapi/mkl/latest
+    endif
+    if ( $?MKLROOT && -e ${MKLROOT}/lib/libmkl_rt.so ) then
+      echo "ORNL setup: PARDISO enabled using MKLROOT=${MKLROOT}"
+      setenv MKL_NUM_THREADS 1
+      setenv MKL_THREADING_LAYER SEQUENTIAL
+      if ( $?LD_LIBRARY_PATH ) then
+        setenv LD_LIBRARY_PATH "${MKLROOT}/lib:${LD_LIBRARY_PATH}"
+      else
+        setenv LD_LIBRARY_PATH "${MKLROOT}/lib"
+      endif
+    else
+      echo "ORNL setup: PARDISO disabled; MKLROOT is not set or libmkl_rt.so was not found"
+    endif
     if ( $?CONDA_PREFIX ) setenv NCARG_ROOT ${CONDA_PREFIX}
 
     set nfincl = `/usr/bin/nf-config --includedir`
@@ -139,6 +155,7 @@ switch ("$ORNL_SYSTEM")
     alias ls 'ls --color=auto'
     setenv NO_MANUAL
     setenv MPI_FC mpif90
+    setenv SOLPS_MPIRUN `which mpirun`
 
     setenv BLAS_DIR  `echo "$LIBRARY_PATH" | tr ':' '\n' | awk '{ cmd="test -e " $0 "/libopenblas.so || test -e " $0 "/libopenblas.a"; if (system(cmd)==0) { print $0; exit } }'`
     setenv NAG_DIR   `echo "$LD_LIBRARY_PATH" | tr ':' '\n' | awk '{ cmd="test -e " $0 "/liblapack.so || test -e " $0 "/liblapack.a"; if (system(cmd)==0) { print $0; exit } }'`
@@ -209,9 +226,12 @@ alias resall_D resall_D.py
 
 alias ct "cpu|tail"
 alias run_b2coupled "b2run b2mn > run.log &"
+alias run_b2standalone "b2run -s b2mn > run.log &"
 
 alias aaa 'cp b2fstate b2fstati'
 alias bbb 'b2run b2mn > run.log &'
+alias bbbs 'b2run -s b2mn > run.log &'
+alias bb1s 'b2run -s b2mn > run.log &'
 alias qqq 'touch b2mn.exe.dir/.quit'
 alias sss 'cp b2fstati b2fstati.save'
 alias zzz 'cp new_coeffs.txt b2.transport.inputfile'
@@ -221,6 +241,11 @@ alias bb8   'b2run -m \"mpirun -np 8\"  b2mn > run.log &'
 alias bb16  'b2run -m \"mpirun -np 16\" b2mn > run.log &'
 alias bb32  'b2run -m \"mpirun -np 32\" b2mn > run.log &'
 alias bb64  'b2run -m \"mpirun -np 64\" b2mn > run.log &'
+alias bb4s  'b2run -s -m \"mpirun -np 4\"  b2mn > run.log &'
+alias bb8s  'b2run -s -m \"mpirun -np 8\"  b2mn > run.log &'
+alias bb16s 'b2run -s -m \"mpirun -np 16\" b2mn > run.log &'
+alias bb32s 'b2run -s -m \"mpirun -np 32\" b2mn > run.log &'
+alias bb64s 'b2run -s -m \"mpirun -np 64\" b2mn > run.log &'
 
 alias ft 'paste ft3dl.last10 ft3dr.last10 | awk.first+even | xyplot2 ft_l ft_r'
 alias fn 'paste fn3dl.last10 fn3dr.last10 | awk.first+even | xyplot2 fn_l fn_r'
