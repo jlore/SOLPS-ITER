@@ -439,37 +439,43 @@ set archive_file = "$work_dir/adas_bundled_archive"
 set extract_dir  = "$work_dir/adas_bundled_extract"
 mkdir -p "$extract_dir"
 
-if ("$downloader" == "curl") then
-  curl -fsSL -g --retry 3 --retry-delay 2 --connect-timeout 30 -o "$archive_file" "$bundled_url"
-else
-  wget -q -O "$archive_file" "$bundled_url"
-endif
-
 set bundled_status = "failed"
-if ($status != 0) then
-  echo "Download of adas_bundled archive failed"
-  @ errors = $errors + 1
+set bundled_existing = ""
+if (-d "$bundled_root") set bundled_existing = `find "$bundled_root" -type f -print -quit`
+if ("$bundled_existing" != "") then
+  set bundled_status = "already present"
 else
-  tar -xf "$archive_file" -C "$extract_dir"
-  if ($status != 0) then
-    unzip -q "$archive_file" -d "$extract_dir"
+  if ("$downloader" == "curl") then
+    curl -fsSL -g --retry 3 --retry-delay 2 --connect-timeout 30 -o "$archive_file" "$bundled_url"
+  else
+    wget -q -O "$archive_file" "$bundled_url"
   endif
+
   if ($status != 0) then
-    echo "ERROR: Failed to extract adas_bundled archive. Expected a tar-compatible or zip archive."
+    echo "Download of adas_bundled archive failed"
     @ errors = $errors + 1
   else
-    if (-d "$extract_dir/adas_bundled") then
-      set bundled_source = "$extract_dir/adas_bundled"
-    else
-      set bundled_source = "$extract_dir"
-    endif
-    tar -cf - -C "$bundled_source" . | tar -xf - -C "$bundled_root"
+    tar -xf "$archive_file" -C "$extract_dir"
     if ($status != 0) then
-      echo "ERROR: Failed to copy extracted adas_bundled content into $bundled_root"
+      unzip -q "$archive_file" -d "$extract_dir"
+    endif
+    if ($status != 0) then
+      echo "ERROR: Failed to extract adas_bundled archive. Expected a tar-compatible or zip archive."
       @ errors = $errors + 1
     else
-      set bundled_status = "downloaded"
-      echo "Download of adas_bundled archive completed"
+      if (-d "$extract_dir/adas_bundled") then
+        set bundled_source = "$extract_dir/adas_bundled"
+      else
+        set bundled_source = "$extract_dir"
+      endif
+      tar -cf - -C "$bundled_source" . | tar -xf - -C "$bundled_root"
+      if ($status != 0) then
+        echo "ERROR: Failed to copy extracted adas_bundled content into $bundled_root"
+        @ errors = $errors + 1
+      else
+        set bundled_status = "downloaded"
+        echo "Download of adas_bundled archive completed"
+      endif
     endif
   endif
 endif
