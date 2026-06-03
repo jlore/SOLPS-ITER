@@ -106,6 +106,7 @@ case "jlore2025":
 case "eos*":
 case "fusion3":
 case "ultrabucky*":
+case "*bucky*":
   echo ORNL
   breaksw
 case "*.ipp.cas.cn":
