@@ -54,7 +54,8 @@ else
     setenv SOLPSTOP `cd ${SETUP_PATH}; pwd -L`
   endif
 endif
-setenv SOLPSWORK ${SOLPSTOP}/runs
+# Site/user setup files may define SOLPSWORK for central run directories.
+# If unset, sbr falls back to ${SOLPSTOP}/runs below.
 
 # Set HOST_NAME and COMPILER, which will determine setup files to be used
 #------------------------------------------------------------------------
@@ -278,7 +279,11 @@ alias ssc  'cd ${SOLPSTOP}/modules/Carre'
 alias ssc2 'cd ${SOLPSTOP}/modules/Carre2'
 alias ssu  'cd ${SOLPSTOP}/modules/Uinp'
 alias slib 'cd ${SOLPSTOP}/lib/${HOST_NAME}.${COMPILER}'
-alias sbr  'cd ${SOLPSTOP}/runs'
+if ($?SOLPSWORK) then
+  alias sbr  'cd ${SOLPSWORK}'
+else
+  alias sbr  'cd ${SOLPSTOP}/runs'
+endif
 alias scr  'cd ${SOLPSTOP}/scripts'
 alias stop 'cd ${SOLPSTOP}'
 
