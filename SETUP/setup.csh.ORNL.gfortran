@@ -93,7 +93,7 @@ switch ("$ORNL_SYSTEM")
 
     setenv BLAS_DIR /usr/lib/x86_64-linux-gnu
     setenv NAG_DIR /usr/lib/x86_64-linux-gnu
-    if (! $?NCARG_ROOT) then
+    if (! $?NCARG_LIB_DIR) then
       if ( $?CONDA_PREFIX ) then
         if (-e ${CONDA_PREFIX}/lib/libncarg.a) then
           setenv NCARG_ROOT ${CONDA_PREFIX}
@@ -151,9 +151,6 @@ switch ("$ORNL_SYSTEM")
       endif
     else
       echo "ORNL setup: PARDISO disabled; MKL library directory was not found"
-    endif
-    if ( $?CONDA_PREFIX ) then
-      setenv NCARG_ROOT ${CONDA_PREFIX}
     endif
     set nfincl = `/usr/bin/nf-config --includedir`
     set nflib  = `/usr/bin/nf-config --flibs | sed 's/.*-L\([^ ]*\).*/\1/'`
