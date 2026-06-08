@@ -144,22 +144,66 @@ S45_PATH=${SOLPSTOP}/modules/solps4-5/builds/${TOOLCHAIN}
 # Create mirror scripts directory links
 #   - only re-creating links if they are not correct, so that we are compatible with read-only file systems (container)
 link_scripts="${SOLPSTOP}/scripts/${TOOLCHAIN}"
+if [ ! -d "${link_scripts}" ]; then
+  if [ -w "${SOLPSTOP}/scripts" ]; then
+    mkdir -p "${link_scripts}"
+  else
+    echo "Warning: cannot create ${link_scripts}; ${SOLPSTOP}/scripts is not writable"
+  fi
+fi
 if [ -z "$NO_MPI" ]; then
   for suffix in ".mpi" ".openmp.mpi"; do
-    [ -d ${link_scripts}${suffix} ] && rm -Rf ${link_scripts}${suffix}
-    [ "`readlink ${link_scripts}${suffix}`" != "${link_scripts}" ] && ln -sf ${link_scripts} ${link_scripts}${suffix}
-    [ -d ${link_scripts}${suffix}.debug ] && rm -Rf ${link_scripts}${suffix}.debug
-    [ "`readlink ${link_scripts}${suffix}.debug`" != "${link_scripts}.debug" ] && ln -sf ${link_scripts}.debug ${link_scripts}${suffix}.debug
+    link_target="${link_scripts}${suffix}"
+    link_current="`readlink "${link_target}"`"
+    if [ "${link_current}" != "${link_scripts}" ]; then
+      if [ -w "${SOLPSTOP}/scripts" ]; then
+        rm -Rf "${link_target}"
+        ln -s "${link_scripts}" "${link_target}"
+      elif [ ! -d "${link_target}" ]; then
+        echo "Warning: cannot update ${link_target}; ${SOLPSTOP}/scripts is not writable"
+      fi
+    fi
+    link_target="${link_scripts}${suffix}.debug"
+    link_current="`readlink "${link_target}"`"
+    if [ "${link_current}" != "${link_scripts}.debug" ]; then
+      if [ -w "${SOLPSTOP}/scripts" ]; then
+        rm -Rf "${link_target}"
+        ln -s "${link_scripts}.debug" "${link_target}"
+      elif [ ! -d "${link_target}" ]; then
+        echo "Warning: cannot update ${link_target}; ${SOLPSTOP}/scripts is not writable"
+      fi
+    fi
   done
 fi
 suffix=".openmp"
-[ -d ${link_scripts}${suffix} ] && rm -Rf ${link_scripts}${suffix}
-[ "`readlink ${link_scripts}${suffix}`" != "${link_scripts}" ] && ln -sf ${link_scripts} ${link_scripts}${suffix}
-[ -d ${link_scripts}${suffix}.debug ] && rm -Rf ${link_scripts}${suffix}.debug
-[ "`readlink ${link_scripts}${suffix}.debug`" != "${link_scripts}.debug" ] && ln -sf ${link_scripts}.debug ${link_scripts}${suffix}.debug
-if [ "`readlink ${link_scripts}.debug`" == "${link_scripts}" ]; then
-  rm -Rf ${link_scripts}.debug
-  mkdir -p ${link_scripts}.debug
+link_target="${link_scripts}${suffix}"
+link_current="`readlink "${link_target}"`"
+if [ "${link_current}" != "${link_scripts}" ]; then
+  if [ -w "${SOLPSTOP}/scripts" ]; then
+    rm -Rf "${link_target}"
+    ln -s "${link_scripts}" "${link_target}"
+  elif [ ! -d "${link_target}" ]; then
+    echo "Warning: cannot update ${link_target}; ${SOLPSTOP}/scripts is not writable"
+  fi
+fi
+link_target="${link_scripts}${suffix}.debug"
+link_current="`readlink "${link_target}"`"
+if [ "${link_current}" != "${link_scripts}.debug" ]; then
+  if [ -w "${SOLPSTOP}/scripts" ]; then
+    rm -Rf "${link_target}"
+    ln -s "${link_scripts}.debug" "${link_target}"
+  elif [ ! -d "${link_target}" ]; then
+    echo "Warning: cannot update ${link_target}; ${SOLPSTOP}/scripts is not writable"
+  fi
+fi
+link_current="`readlink "${link_scripts}.debug"`"
+if [ "${link_current}" = "${link_scripts}" ]; then
+  if [ -w "${SOLPSTOP}/scripts" ]; then
+    rm -Rf "${link_scripts}.debug"
+    mkdir -p "${link_scripts}.debug"
+  else
+    echo "Warning: cannot update ${link_scripts}.debug; ${SOLPSTOP}/scripts is not writable"
+  fi
 fi
 
 # Note: in case of name clash between script and executable, script will be found first

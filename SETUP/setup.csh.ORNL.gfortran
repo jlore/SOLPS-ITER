@@ -88,7 +88,7 @@ switch ("$ORNL_SYSTEM")
         echo "Warning: no SOLPS conda environment found under ${solps_conda_root}/envs."
       endif
     else
-      echo "Warning: SOLPS conda root not found. Set SOLPS_CONDA_ROOT to the Miniforge install path."
+      echo "Warning: SOLPS conda root not found. Run setup_solps_goat_user_env or set SOLPS_CONDA_ROOT."
     endif
 
     setenv BLAS_DIR /usr/lib/x86_64-linux-gnu
@@ -115,7 +115,11 @@ switch ("$ORNL_SYSTEM")
     if ( $?NCARG_LIB_DIR ) then
       echo "ORNL setup: NCAR Graphics enabled using NCARG_LIB_DIR=${NCARG_LIB_DIR}"
     else
-      echo "ORNL setup: NCAR Graphics disabled; NCARG libraries were not found"
+      if ( $?CONDA_PREFIX ) then
+        echo "ORNL setup: NCAR Graphics disabled; expected ${CONDA_PREFIX}/lib/libncarg.a from the ncl package"
+      else
+        echo "ORNL setup: NCAR Graphics disabled; no SOLPS conda environment is active"
+      endif
     endif
     
     if (! $?MKLROOT) then
