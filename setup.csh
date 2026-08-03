@@ -17,6 +17,9 @@
 #   3. output of `whereami` script
 #   4. fallback to UNKNOWN
 #
+# SETUP/setup.csh.HOST_NAME.COMPILER.pre is sourced after HOST_NAME and
+# COMPILER are determined, before any environment cache is loaded.
+#
 # Variable COMPILER is determined with decreasing priority from:
 #   1. First argument to `source setup.csh` command
 #   2. $SOLPS_COMPILER_FORCE
@@ -51,7 +54,9 @@ else
     setenv SOLPSTOP `cd ${SETUP_PATH}; pwd -L`
   endif
 endif
-setenv SOLPSWORK ${SOLPSTOP}/runs
+# Preserve a site/user value for central run directories; otherwise use the
+# traditional runs directory under SOLPSTOP.
+if (! $?SOLPSWORK) setenv SOLPSWORK ${SOLPSTOP}/runs
 
 # Set HOST_NAME and COMPILER, which will determine setup files to be used
 #------------------------------------------------------------------------
@@ -106,12 +111,25 @@ endif
 
 limit stacksize unlimited
 
+set setup_pre_cache=${SOLPSTOP}/SETUP/setup.csh.${HOST_NAME}.${COMPILER}.pre
+if (-s $setup_pre_cache) then
+  echo Loading SETUP/setup.csh.${HOST_NAME}.${COMPILER}.pre.
+  source $setup_pre_cache
+endif
+
+set cache_enabled = 0
+if (`uname` != "Darwin" && ! $?SOLPS_DISABLE_ENV_CACHE) then
+  set cache_enabled = 1
+endif
+
 # Load environment cache if it exists and the setup files have not changed
-if (`uname` != "Darwin") then   # Assuming to work on some HPC cluster
+if ($cache_enabled) then   # Assuming to work on some HPC cluster
   set setup=${SOLPSTOP}/SETUP/setup.csh.${HOST_NAME}.${COMPILER}
   if ((-f $setup.env.local.${USER}) && \
       ( -M $setup.env.local.${USER} ) >= ( -M $setup ) && \
       ( -M $setup.env.local.${USER} ) >= ( -M ${SOLPSTOP}/setup.csh ) && \
+      (!(-f $setup_pre_cache) || \
+        ( -M $setup.env.local.${USER} ) >= ( -M $setup_pre_cache )) && \
       (!(-f ${SOLPSTOP}/SETUP/setup.csh.local) || \
         ( -M $setup.env.local.${USER} ) >= ( -M ${SOLPSTOP}/SETUP/setup.csh.local )) && \
       (!(-f $setup.local) || ( -M $setup.env.local.${USER} ) >= ( -M $setup.local ))) then
@@ -187,28 +205,85 @@ set       S45_PATH =  ${SOLPSTOP}/modules/solps4-5/builds/${TOOLCHAIN}
 # Create mirror scripts directory links
 #   - only re-creating links if they are not correct, so that we are compatible with read-only file systems (container)
 set link_scripts="${SOLPSTOP}/scripts/${TOOLCHAIN}"
-if (! -d ${link_scripts}) mkdir -p ${link_scripts}
+if (! -d ${link_scripts}) then
+  if (-w ${SOLPSTOP}/scripts) then
+    mkdir -p ${link_scripts}
+  else
+    echo "Warning: cannot create ${link_scripts}; ${SOLPSTOP}/scripts is not writable"
+  endif
+endif
 if (! $?NO_MPI) then
   foreach suffix ( ".mpi" ".openmp.mpi" )
-    if (-d ${link_scripts}${suffix}) rm -Rf ${link_scripts}${suffix}
-    if (`readlink ${link_scripts}${suffix}` != ${link_scripts} ) ln -sf ${link_scripts} ${link_scripts}${suffix}
-    if (-d ${link_scripts}${suffix}.debug) rm -Rf ${link_scripts}${suffix}.debug
-    if (`readlink ${link_scripts}${suffix}.debug` != ${link_scripts}.debug ) ln -sf ${link_scripts}.debug ${link_scripts}${suffix}.debug
+    set link_target="${link_scripts}${suffix}"
+    set link_current="`readlink ${link_target}`"
+    if ("${link_current}" != "${link_scripts}") then
+      if (-w ${SOLPSTOP}/scripts) then
+        rm -Rf ${link_target}
+        ln -s ${link_scripts} ${link_target}
+      else if (! -d ${link_target}) then
+        echo "Warning: cannot update ${link_target}; ${SOLPSTOP}/scripts is not writable"
+      endif
+    endif
+    set link_target="${link_scripts}${suffix}.debug"
+    set link_current="`readlink ${link_target}`"
+    if ("${link_current}" != "${link_scripts}.debug") then
+      if (-w ${SOLPSTOP}/scripts) then
+        rm -Rf ${link_target}
+        ln -s ${link_scripts}.debug ${link_target}
+      else if (! -d ${link_target}) then
+        echo "Warning: cannot update ${link_target}; ${SOLPSTOP}/scripts is not writable"
+      endif
+    endif
   end
 else
   foreach suffix ( ".mpi" ".openmp.mpi" )
-    if (-d ${link_scripts}${suffix}) rm -Rf ${link_scripts}${suffix}
-    if (-d ${link_scripts}${suffix}.debug) rm -Rf ${link_scripts}${suffix}.debug
+    set link_target="${link_scripts}${suffix}"
+    if (-e ${link_target}) then
+      if (-w ${SOLPSTOP}/scripts) then
+        rm -Rf ${link_target}
+      else
+        echo "Warning: cannot remove ${link_target}; ${SOLPSTOP}/scripts is not writable"
+      endif
+    endif
+    set link_target="${link_scripts}${suffix}.debug"
+    if (-e ${link_target}) then
+      if (-w ${SOLPSTOP}/scripts) then
+        rm -Rf ${link_target}
+      else
+        echo "Warning: cannot remove ${link_target}; ${SOLPSTOP}/scripts is not writable"
+      endif
+    endif
   end
 endif
 set suffix=".openmp"
-if (-d ${link_scripts}${suffix}) rm -Rf ${link_scripts}${suffix}
-if (`readlink ${link_scripts}${suffix}` != ${link_scripts} ) ln -sf ${link_scripts} ${link_scripts}${suffix}
-if (-d ${link_scripts}${suffix}.debug) rm -Rf ${link_scripts}${suffix}.debug
-if (`readlink ${link_scripts}${suffix}.debug` != ${link_scripts}.debug ) ln -sf ${link_scripts}.debug ${link_scripts}${suffix}.debug
-if (`readlink ${link_scripts}.debug` == ${link_scripts} ) then
-  rm -Rf ${link_scripts}.debug
-  mkdir -p ${link_scripts}.debug
+set link_target="${link_scripts}${suffix}"
+set link_current="`readlink ${link_target}`"
+if ("${link_current}" != "${link_scripts}") then
+  if (-w ${SOLPSTOP}/scripts) then
+    rm -Rf ${link_target}
+    ln -s ${link_scripts} ${link_target}
+  else if (! -d ${link_target}) then
+    echo "Warning: cannot update ${link_target}; ${SOLPSTOP}/scripts is not writable"
+  endif
+endif
+set link_target="${link_scripts}${suffix}.debug"
+set link_current="`readlink ${link_target}`"
+if ("${link_current}" != "${link_scripts}.debug") then
+  if (-w ${SOLPSTOP}/scripts) then
+    rm -Rf ${link_target}
+    ln -s ${link_scripts}.debug ${link_target}
+  else if (! -d ${link_target}) then
+    echo "Warning: cannot update ${link_target}; ${SOLPSTOP}/scripts is not writable"
+  endif
+endif
+set link_current="`readlink ${link_scripts}.debug`"
+if ("${link_current}" == "${link_scripts}") then
+  if (-w ${SOLPSTOP}/scripts) then
+    rm -Rf ${link_scripts}.debug
+    mkdir -p ${link_scripts}.debug
+  else
+    echo "Warning: cannot update ${link_scripts}.debug; ${SOLPSTOP}/scripts is not writable"
+  endif
 endif
 
 # Note: in case of name clash between script and executable, script will be found first
@@ -262,7 +337,7 @@ alias ssc  'cd ${SOLPSTOP}/modules/Carre'
 alias ssc2 'cd ${SOLPSTOP}/modules/Carre2'
 alias ssu  'cd ${SOLPSTOP}/modules/Uinp'
 alias slib 'cd ${SOLPSTOP}/lib/${HOST_NAME}.${COMPILER}'
-alias sbr  'cd ${SOLPSTOP}/runs'
+alias sbr  'cd ${SOLPSWORK}'
 alias scr  'cd ${SOLPSTOP}/scripts'
 alias stop 'cd ${SOLPSTOP}'
 
@@ -373,7 +448,7 @@ if (-s ${SOLPSTOP}/SETUP/setup.csh.local) then
 endif
 
 # Create environment cache for faster loading (setenv, unsetenv, and aliases)
-if (`uname` != "Darwin") then   # Assuming to work on some HPC cluster
+if ($cache_enabled) then   # Assuming to work on some HPC cluster
   set setup_post = `mktemp`
   env | sed -ne "/^[ }]\|=()/b; s/\([^=]*\)=\(.*\)/setenv \1 '\2'/p" \
      -e '1i# Generated environment cache. Do not edit!' >! $setup_post
