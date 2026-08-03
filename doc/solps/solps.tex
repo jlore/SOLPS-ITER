@@ -1360,7 +1360,7 @@ currently).
 {\tt ratadas.filelist} indicates the global source of the {\tt ADAS} files,
 and which "years" to use.
 
-In case of no access to the AMNS ADAS repository, the script {\tt fetch\_adas\_datafiles} can be used to create a local copy of this folder, as {\tt \$SOLPSTOP/data.local/adas}, which will be populated using open source data downloaded from the \href{https://open.adas.ac.uk/}{OpenADAS website} and, for bundled data, from a Zenodo record.
+In case of no access to the AMNS ADAS repository, the script {\tt fetch\_adas\_datafiles} can be used to create a local copy of this folder, as {\tt \$SOLPSTOP/data.local/adas}, which will be populated using open source data downloaded from the \href{https://open.adas.ac.uk/}{OpenADAS website} and, for bundled data, from a Zenodo record. Since access to the AMNS ADAS repository is restricted, a connection or authentication failure should not prevent the required submodules from being updated. The {\tt solps-iter\_update\_wg\_release} script therefore updates the required submodules first, checks the ADAS repository separately, and then updates ADAS only when it is accessible. Otherwise, an existing local ADAS checkout or the open-data fallback is used. Setting {\tt SOLPS\_SKIP\_ADAS\_REPOSITORY} before running the update script forces this fallback without testing the repository connection.
 
 \newpage \section{lib}
 
@@ -1785,7 +1785,7 @@ for the definitions of the regions and surfaces)\index{SOLPS\_FLUIDS}\index{NREG
   \item[define\_compilers]\index{define\_compilers} This script sets the compiling variables {\tt \$\{CC\}} and {\tt \$\{FC\}} to the proper C and Fortran compilers, respectively, if not already set, according to the value of the main {\tt \$\{COMPILER\}} variable.
   \item[env\_var\_length]\index{env\_var\_length} Lists the length of each environment variable in the shell. When executed as in {\tt `env\_var\_length | sort -n | tail`}, prints the 10 longest environment variables.
   \item[env\_var\_prune]\index{env\_var\_prune} Prunes an environment variable by removing duplicated entries. Usage is {\tt setenv X `env\_var\_prune X`}.
-  \item[fetch\_adas\_datafiles]\index{fetch\_adas\_datafiles}\index{ADAS} Downloads the ADAS datafiles used by {\tt B2.5} from the OpenADAS website (adf11 and adf15 files) and from the \SOLPSITER Zenodo archive (bundled files) and puts them into a {\tt \$SOLPSTOP/data.local/adas} folder. Used in case of no access to the AMNS ADAS repository.
+  \item[fetch\_adas\_datafiles]\index{fetch\_adas\_datafiles}\index{ADAS} Downloads the ADAS datafiles used by {\tt B2.5} from the OpenADAS website (adf11 and adf15 files) and from the \SOLPSITER Zenodo archive (bundled files) and puts them into a {\tt \$SOLPSTOP/data.local/adas} folder. Used in case of no access to the AMNS ADAS repository. Files which are already present are retained, and a successfully installed bundled archive is marked so that it is not downloaded again on subsequent runs.
   \item[fixbb]\index{fixbb} A utility script to properly define the bounding box of PostScript files.
   \item[get\_series]\index{get\_series} Gets the data from {\tt last\_2d\_out} files of the runs associated with the series described in {\tt series\_file} and prints them out in a plottable multi-column file {\tt Series.dat} according to {\tt get\_series.cmd} file (default example of this file can be found in {\tt \$SOLPSTOP/scripts/commands}). Read the script header for further details.
   \item[gtdr]\index{gtdr} Script to make a directory tree local.
