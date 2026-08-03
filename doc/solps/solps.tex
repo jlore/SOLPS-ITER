@@ -270,7 +270,7 @@ For later updates of the {\tt master} branches, it is recommended you use the {\
 
 {\em {\bf \underline{IMPORTANT:}} When updating the code, some routines or other configuration files may have been moved, renamed, added, or deleted, and the updating script itself may have changed. In that case, compilation will likely fail on the first update attempt. The user should then start afresh with a new session, and run the update script a second time. If compilation still fails, then the user should remove old compiled files by means of the appropriate {\tt gmake clean} instruction and attempt another compilation, from scratch.}
 
-Please note that because of the way some of the \SOLPSITER utility scripts function, the path to the \SOLPSITER top directory must not contain any of the strings {\tt .debug}, {\tt .mpi}, {\tt .openmp}, {\tt .ig}, {\tt .tgt}, or {\tt .adj}.
+Please note that because of the way some of the \SOLPSITER utility scripts function, the path to the \SOLPSITER top directory must not contain any of the strings {\tt .debug}, {\tt .mpi}, {\tt .openmp}, {\tt .ig}, {\tt .tgt}, {\tt .adj}, or {\tt .hess\_tgt}.
 
 Since the user-id is immutably encoded into any changes, it is always a good idea to properly configure a local installation of Git on all the systems on which one plans on making code revisions with, e.g.:
 
@@ -407,6 +407,7 @@ The current list of recognized hostnames, deduced by means of the {\tt whereami}
   \item[ORNL] Oak Ridge National Laboratory: *.ornl.gov
   \item[PITAGORA] PITAGORA supercomputer: *.pitagora.cineca.it
   \item[PPPL] PPPL domain: *.pppl.gov
+  \item[SCNET] SuperComputing Network in China: scnet.cn
   \item[SPBSTU] St. Petersburg State Polytechnical University: *.spbstu.ru
   \item[SURFSARA] Snellius National Supercomputer: *.snellius.surf.nl
   \item[SWIP] SouthWestern Institute of Plasma Physics, Chengdu: *.swip.ac.cn
@@ -443,7 +444,7 @@ At the moment the following compiler platforms are supported, assuming a Linux w
 \begin{description}\index{Platforms}
   \item[cray] The Cray compiler, in use at the JFRS supercomputing center
   \item[pgf90] Portland Group 32-bit Fortran compiler, in use at JET and ORNL
-  \item[ifort64] Intel 64-bit Fortran compiler, in use at ITER
+  \item[ifort64] Intel 64-bit Fortran compiler, in use at ITER. From Intel oneAPI 2025 onwards, this identifier selects {\tt ifx} (the LLVM-based compiler) instead of the classic {\tt ifort}.
   \item[gfortran] The gfortran compiler, in use at IPP, EFGW (EUROfusion Gateway), FZ-J{\"u}lich, and KU-Leuven
   \item[g95] The g95 compiler
   \item[nag\_f90] The NAG Fortran compiler
@@ -558,12 +559,44 @@ course be replaced by {\tt gmake solps(\_debug)},
 and proceed with the recompilation as above.
 \end{sloppypar}
 
-It is possible to pass down Makefile options with the syntax
+It is possible to accelerate the compilation by invoking {\tt make} with a top-level {\tt -j} flag, e.g.:
+\begin{verbatim}
+  gmake -j 8 solps
+  gmake -j $(nproc) solps_openmp
+\end{verbatim}
+This allows GNU make's jobserver to share compilation jobs across all submodules.
+In a SLURM batch job where {\tt SLURM\_CPUS\_PER\_TASK} is set, the following command will automatically use the allocated number of cores:
+\begin{verbatim}
+  gmake -j ${SLURM_CPUS_PER_TASK:-$(nproc)} solps
+\end{verbatim}
+\index{parallel compilation}\index{Makefile, parallel}
+
+For a \emph{fresh build} (no object files yet), it is recommended to run the {\tt prereqs} target once
+before the parallel compilation.
+This generates version headers, local stubs, object-list files ({\tt LISTOBJ}), and dependency files
+for all build variants in a single serial pass, preventing each parallel sub-make from redundantly
+regenerating the same shared files:
+\begin{verbatim}
+  gmake prereqs
+  gmake -j $(nproc) solps
+\end{verbatim}
+For debug builds use {\tt prereqs\_debug} in the same way:
+\begin{verbatim}
+  gmake prereqs_debug
+  gmake -j $(nproc) solps_debug
+\end{verbatim}
+For no-X11 builds (e.g.\ on headless nodes or in CI), use the targeted variants:
+\begin{verbatim}
+  gmake prereqs_nox       && gmake -j $(nproc) solps_nox
+  gmake prereqs_nox_debug && gmake -j $(nproc) solps_nox_debug
+\end{verbatim}
+Note: the {\tt Triang} submodule is automatically forced to build serially ({\tt -j1}) because its {\tt makedepend}-generated dependency file does not capture Fortran {\tt USE} dependencies for the Eirene modules it compiles. This has negligible impact on overall build time.
+
+The older form
 \begin{verbatim}
   gmake MAKE_OPTIONS=-j8
 \end{verbatim}
-for instance to multi-thread on the compilation. It is not recommended to give compilation options directly in the compilation line (say, with {\tt gmake -j8 solps})
-because the \SOLPSITER compilation includes many parts which must be done in order and sometimes serially.
+is still supported but only parallelises within each submodule's sub-make, not across them, because it bypasses the top-level jobserver.
 
 Once the configuration files and dimensions have been filled in with the appropriate information for the
 local implementation desired, one proceeds with the compilation of the code. For this
@@ -634,6 +667,13 @@ purpose, a master \SOLPSITER {\tt Makefile} is provided, located at {\tt \$\{SOL
   \item[depend\_nox] Builds the dependencies files for the various code components when not linking to graphics libraries
   \item[tags] Builds {\tt etags} files for easy source code searched using {\tt emacs}
   \item[VERSION] Updates the GIT version number included in the source code and output
+  \item[prereqs] Runs all non-parallel-safe preliminary steps once in order:
+    {\tt local}, {\tt VERSION}, {\tt tags}, {\tt listobj}, {\tt depend} (all variants).
+    Recommended before a large parallel build to avoid redundant regeneration of
+    object lists and dependency files inside each parallel sub-make.
+    See also {\tt prereqs\_debug} for debug builds, and
+    {\tt prereqs\_nox} / {\tt prereqs\_nox\_debug} for no-X11
+    and no-X11 debug builds respectively.
   \item[clean] Alias to {\bf clean\_solps}
   \item[solps\_nox] Alias to {\bf nox}
   \item[help] Lists the available targets that can be built
@@ -690,6 +730,8 @@ smooth code operation (See also Section~\ref{sec:setup} for full details).
 tcsh
 source setup.csh
 \end{verbatim}
+An alternative setup script, {\tt setup.ksh}, is also available for Bash/Korn shell environments, without graphics, such as for CI test suites.
+Note that {\tt setup.ksh} may not support all features provided by {\tt setup.csh}.
 
 Among other things, these setup files establish some aliases that are useful for navigating the \SOLPSITER directory structure (see details in Chapter~\ref{cha:structure}). Those aliases are:
 \begin{description}
@@ -861,6 +903,8 @@ The {\tt setup.csh} file and its subsidiaries {\tt \$\{SOLPSTOP\}/SETUP/setup.cs
 \item two aliases to swap between the TGT and no\_TGT versions of the code ({\tt set\_tgt} and {\tt unset\_tgt})
 \item two aliases to swap between the ADJ and no\_ADJ versions of the code ({\tt set\_adj} and {\tt unset\_adj})
 \item two aliases to swap between the TAO and no\_TAO versions of the code ({\tt set\_tao} and {\tt unset\_tao})
+\item two aliases to swap between the BFGS and no\_BFGS versions of the code ({\tt set\_bfgs} and {\tt unset\_bfgs})
+\item two aliases to swap between the HESS\_TGT and no\_HESS\_TGT versions of the code ({\tt set\_hess\_tgt} and {\tt unset\_hess\_tgt})
 \end{enumerate}
 Of course, any additional desired definitions can be added. The preferred place for those is, for those variables that need not be shared by other users, the {\tt \$\{SOLPSTOP\}/SETUP/setup.csh.\$\{HOST\_NAME\}.\allowbreak\$\{COMPILER\}.local} and {\tt \$\{SOLPSTOP\}/SETUP/config.\$\{HOST\_NAME\}.\$\{COMPILER\}.local} files. Variables that are needed at compilation time need to appear in the {\tt config.*.*(.local)} file, while variables needed at runtime must appear in {\tt setup.csh.*.*(.local)} file.
 \end{sloppypar}
@@ -1790,6 +1834,7 @@ for the definitions of the regions and surfaces)\index{SOLPS\_FLUIDS}\index{NREG
   \item[resmo\_diff]\index{resmo\_diff} Plots the evolution of the residuals of the diff'ed momentum equation (in tangent mode only).
   \item[resrest\_diff]\index{resrest\_diff} Plots the evolution of the residuals of the diff'ed total momentum, ion energy, electron energy, and potential equations (in tangent mode only).
   \item[result\_tao.sh]\index{result\_tao.sh} Produces files that summarize an optimization run performed with {\tt PETSc/TAO}. See \ref{sec:optim_results} for details.
+  \item[result\_bfgs.sh]\index{result\_bfgs.sh} Produces files that summarize an optimization run performed with the built-in BFGS optimization algorithm. See \ref{sec:optim_results} for details.
   \item[run\_info]\index{run\_info} Prints the file {\tt run.info} that contains information about cost function, gradient, optimization. See \ref{sec:optim_results} for details.
  \end{description}
 \item Others
@@ -2160,11 +2205,11 @@ for tangent, adjoint, and Hessian tangent on tangent AD respectively. This can b
 itersubmit -opt_tgt <<OPT_OPTIONS>>
 itersubmit -opt_adj <<OPT_OPTIONS>>
 \end{verbatim}
-again for tangent and adjoint AD respectively. The user can select the optimization library beforehand, e.g. using {\tt set\_tao} or another available one, otherwise the script will default to {\tt PETSc/TAO}. A concrete example is:
+again for tangent and adjoint AD respectively. The user can select the optimization library beforehand, e.g. using {\tt set\_tao} or another available one, otherwise the script will default to the built-in BFGS algorithm. A concrete example is:
 \begin{verbatim}
 set_tao; itersubmit -opt_tgt '-tao_ls_type armijo'
 \end{verbatim}
-where the {\tt PETSc/TAO armijo} line search option is asked for. For both sensitivity and optimization runs only the {\tt SLURM.iter} script should be employed. Note additionally that MPI and OpenMP are currently not tested for AD executables.
+where the {\tt PETSc/TAO armijo} line search option is asked for. Note that the built-in BFGS algorithm does not take any command line options. For both sensitivity and optimization runs only the {\tt SLURM.iter} script should be employed. Note additionally that MPI and OpenMP are currently not tested for AD executables.
 
 A listing of the available options for each submission script can be obtained by the
 \begin{verbatim}
@@ -4524,7 +4569,7 @@ which will recognize, within the quotes following the {\tt -o} additional option
 Concerning the assignment of pulse (in Access Layer 5) or shot (in Access Layer 4) and run numbers, the following rules are in effect. If not using IMAS Access Layer 5, the shot number must a six digit number between 1 and 214748. ITER pulse or shot numbers shall start with a 1, the second digit represents the majority fuelling species (0:H, 1:He, 2:D, 3:D-T, 4:T, 5:others, the sequence reflecting the order in which fuel gases are expected to be used in the ITER Research Plan), and the last four digits identify the simulation. Because multiple codes are all writing to the same database and we want to avoid clashes, different "slices" of numbers have been assigned for various codes. We will use numbers {\tt 1x2000} to {\tt 1x2999} for transferring existing simulations from the {\bf SOLPS 4.3} database to IMAS, and {\tt 1x3000} to {\tt 1x3499} for new \SOLPSITER cases. Run numbers should start at 1, and be incremented every time a new version of the same simulation (say after a re-run because a bug in the code was fixed) is being stored in the archive. When changing important run parameters such as gas puffing rates, turning on drifts, etc..., a new pulse or shot number should be used. If intending to publish the IMAS data entry in the IO database, please send an email to the IO code Responsible Officer ({\tt Xavier.Bonnin@iter.org}), when you wish to assign a new shot number, as the IO will keep track of those already used. IMPORTANT: {\em When publishing SOLPS-ITER results with IO co-authors involved, archiving into the public IMAS database of the simulations on which the published work is based is mandatory.}
 
 \begin{sloppypar}
-With Access Layer 5, the IMAS data entries will be written in the directory with absolute location given by {\tt path}, with the prefix {\tt \$IMASDIR/} if it was not provided. {\tt IMASDIR} is expected to be of the form {\tt <path\_to\_user\_public\_directory>/imasdb/\$\{database\}/\$\{version\}}. It should be set as part of the local environment variables in a {\tt setup.csh.local} file. Use of the {\tt user}, {\tt database}, or {\tt version} input flags allows to overwrite their values in the {\tt IMASDIR} path. The {\tt path} may also contain {\tt \$HOME}, {\tt \$IMASDIR}, or {\tt \$SOLPSTOP}, which will be parsed by the code.
+With Access Layer 5, the IMAS data entries will be written in the directory with absolute location given by {\tt path}, with the prefix {\tt \$IMASDIR/} if it was not provided. {\tt IMASDIR} should be set as part of the local environment variables in a {\tt setup.csh.local} file. Otherwise, it will be of the form {\tt <path\_to\_user\_public\_directory>/imasdb/\$\{database\}/\$\{version\}}. The {\tt user}, {\tt database}, or {\tt version} input flags allow to overwrite their default values in the {\tt IMASDIR} path. The {\tt path} may also contain {\tt \$HOME}, {\tt \$IMASDIR}, or {\tt \$SOLPSTOP}, which will be parsed by the code.
 \end{sloppypar}
 
 After the IDS files are created, if using IMAS Access Layer 3 or 4, one should also run the {\tt create\_db\_entry} script, with the syntax:
@@ -11832,6 +11877,8 @@ b_\alpha = \left\{
 \right.
 \end{equation*}
 
+Satisfying this boundary condition may require internal iterations for the potential equation. These are triggered with the {\tt b2news\_max\_iter\_po} switch (default {\tt 0}, off), and the absolute and relative convergence criteria are set by {\tt b2stbc\_bcpot11\_epsa} and {\tt b2stbc\_bcpot11\_epsr}, respectively (default value for both: $10^{-4}$).
+
 {\em Imposing a sheath potential boundary condition:} {\tt BCPOT = 3}
 
 $\left. \frac{\sqrt g}{h_x} j_x \right|_W =
@@ -11858,6 +11905,8 @@ To be used in conjunction with {\tt BCENE = 15}, {\tt BCENI = 15}, {\tt BCMOM = 
         \sqrt{\frac{T_e}{m_e}} \exp \left( -\frac{e \left( \Phi - p_{\Phi,2} \right)}{T_e} \right)
 \right] \right|_E
 \end{equation*}\normalsize
+
+Satisfying this boundary condition may require internal iterations for the potential equation. These are triggered with the {\tt b2news\_max\_iter\_po} switch (default {\tt 0}, off), and the absolute and relative convergence criteria are set by {\tt b2stbc\_bcpot11\_epsa} and {\tt b2stbc\_bcpot11\_epsr}, respectively (default value for both: $10^{-4}$).
 
 {\em Imposing a sheath potential boundary condition:} {\tt BCPOT = 3}
 
@@ -21598,11 +21647,11 @@ if desired, be declared as part of either the {\tt SOLPS\_CPP} or the
 \item[NO\_OPT] \index{NO\_OPT} No compiler optimization
 \item[\_OPENMP] \index{\_OPENMP} For OpenMP specific code
 \item[PAR\_OPT] \index{PAR\_OPT} Runs the code in a special interpretive parameter optimization mode
+\item[PARAVIEW\_MAJOR\_VERSION] \index{PARAVIEW\_MAJOR\_VERSION} Specifies the major version number of ParaView for binding to the Catalyst debug engine (automatically provided by environment setup scripts)
 \item[PARDISO] \index{PARDISO} Enables specific code for the PARDISO solver
 \item[PERFMON] \index{PERFMON} Enable performance monitoring
 \item[PLPLOT] \index{PLPLOT} Use {\tt PLPLOT} instead of {\tt NCAR} for plotting
 %\item[SCL\_IMP\_RCI] \index{SCL\_IMP\_RCI} Toggles scaling of impurities tallies
-\item[TAO\_NEW] \index{TAO\_NEW} Indicates that the code is to be linked with version 3.17 or newer of the {\tt PETSc} package. Automatically set by the session start-up scripts.
 \item[USE\_CDF\_B2STIME] \index{USE\_CDF\_B2STIME} Specific for \SOLPSfour {\tt CDF} tallies
 \item[WANT\_PROCESS] \index{WANT\_PROCESS} Enables the code for the \SOLPSfive to \SOLPSfour converter
 \item[WITH\_FTIMINGS] \index{WITH\_FTIMINGS} Enables debugging code for timing OpenMP parallelization implementation
@@ -21633,13 +21682,13 @@ or
 \begin{verbatim}
   B25_DEFINES += -DOPTION
 \end{verbatim}
-so that the new option is added to the list. (Unsupported {\tt ksh}
-or {\tt bash} users would use something like
+so that the new option is added to the list.
+For {\tt ksh} or {\tt bash} users, the syntax would be
 \begin{verbatim}
   export B25_DEFINES="$B25_DEFINES -DOPTION"
 \end{verbatim}
 %% $
-). If choosing to use {\tt SOLPS\_CPP} instead, the procedure is the same as
+If choosing to use {\tt SOLPS\_CPP} instead, the procedure is the same as
 in the previous section.
 
 %%grep #if $SOLPSTOP/modules/B2.5/src/*/*.F | awk '{print $2,$1}' | sort | uniq
@@ -22208,6 +22257,7 @@ NO\_SAVE & include/EIRDIAG.H \\
 \_OPENMP & utility/sfill.F \\
 PAR\_OPT & sources/b2stbc\_phys.F \\
 PAR\_OPT & transport/b2tqna.F \\
+PARAVIEW\_MAJOR\_VERSION & catalyst/cxxAdaptor.cxx \\
 PARDISO & modules/b2mod\_pardiso.F \\
 PERFMON & utility/prgend.F \\
 PERFMON & utility/prgini.F \\
@@ -22259,9 +22309,6 @@ SOLPS4\_3 & modules/b2mod\_mwti.F90 \\
 SOLPS4\_3 & modules/b2mod\_neutrals\_namelist.F \\
 SOLPS4\_3 & modules/b2us\_feedback.F \\
 SOLPS4\_3 & sources/eirene\_f30f31.F \\
-TAO\_NEW & differentiation/b2optim\_tao.F90 \\
-TAO\_NEW & differentiation/adjoint/b2optim\_tao.F90 \\
-TAO\_NEW & differentiation/tangent/b2optim\_tao.F90 \\
 USE\_CDF\_B2STIME & modules/b2mod\_comtimpl.F \\
 USE\_CDF\_B2STIME & common/COUPLE/COMTIMPL.F \\
 USE\_EXT\_OPENMP & driver/b2mod\_driver.F \\
@@ -22370,13 +22417,13 @@ or
 \begin{verbatim}
   EIRENE_DEFINES += -DOPTION
 \end{verbatim}
-so that the new option is added to the list. (Unsupported {\tt ksh}
-or {\tt bash} users would use something like
+so that the new option is added to the list, or if using {\tt ksh}
+or {\tt bash}
 \begin{verbatim}
   export EIRENE_DEFINES="$EIRENE_DEFINES -DOPTION"
 \end{verbatim}
 %% $
-). If choosing to use {\tt SOLPS\_CPP} instead, the procedure is the same as
+If choosing to use {\tt SOLPS\_CPP} instead, the procedure is the same as
 in the previous section.
 
 We list below where the {\tt Eirene} compilation switches are used.
@@ -22412,6 +22459,9 @@ CRAY & broadcast/broadsput.F \\
 CRAY & broadcast/calstr.F \\
 CRAY & broadcast/collect\_census.F \\
 CRAY & broadcast/collect\_coutau.F \\
+CRAY & interfaces/couple\_SOLPS\_WG/eirmod\_ccoupl.F \\
+CRAY & interfaces/couple\_SOLPS\_WG/eirmod\_eirbra.F \\
+CRAY & interfaces/couple\_SOLPS\_WG/eirmod\_infcop.F \\
 CRAY & interfaces/couple\_SOLPS\_WG/eirmod\_wneutrals.F \\
 CRAY & interfaces/couple\_SOLPS\_WG/eirsrt.F \\
 CRAY & modules/eirmod\_cadgeo.F \\
@@ -22453,6 +22503,9 @@ GFORTRAN & broadcast/calstr.F \\
 GFORTRAN & broadcast/collect\_census.F \\
 GFORTRAN & broadcast/collect\_coutau.F \\
 GFORTRAN & broadcast/eirmod\_calstr\_buffered.F90 \\
+GFORTRAN & interfaces/couple\_SOLPS\_WG/eirmod\_ccoupl.F \\
+GFORTRAN & interfaces/couple\_SOLPS\_WG/eirmod\_eirbra.F \\
+GFORTRAN & interfaces/couple\_SOLPS\_WG/eirmod\_infcop.F \\
 GFORTRAN & interfaces/couple\_SOLPS\_WG/eirmod\_wneutrals.F \\
 GFORTRAN & interfaces/couple\_SOLPS\_WG/eirsrt.F \\
 GFORTRAN & modules/eirmod\_balanced\_strategy.F90 \\
@@ -22526,6 +22579,7 @@ LEGACYCOMP & output/outildsrf.f \\
 LEGACYCOMP & particle-tracing/eirmod\_collide.F \\
 LEGACYCOMP & particle-tracing/eirmod\_samsrf.F \\
 LEGACYCOMP & particle-tracing/escape.F \\
+LEGACYCOMP & photons/eirmod\_photon.F \\
 LEGACYCOMP & scoring/getscl4.F \\
 LEGACYCOMP & scoring/update.F \\
 LEGACYCOMP & scoring/update\_surface.F \\
@@ -22560,6 +22614,9 @@ OPEN\_MPI & broadcast/calstr.F \\
 OPEN\_MPI & broadcast/collect\_census.F \\
 OPEN\_MPI & broadcast/collect\_coutau.F \\
 OPEN\_MPI & broadcast/eirmod\_calstr\_buffered.F90 \\
+OPEN\_MPI & interfaces/couple\_SOLPS\_WG/eirmod\_ccoupl.F \\
+OPEN\_MPI & interfaces/couple\_SOLPS\_WG/eirmod\_eirbra.F \\
+OPEN\_MPI & interfaces/couple\_SOLPS\_WG/eirmod\_infcop.F \\
 OPEN\_MPI & interfaces/couple\_SOLPS\_WG/eirmod\_wneutrals.F \\
 OPEN\_MPI & interfaces/couple\_SOLPS\_WG/eirsrt.F \\
 OPEN\_MPI & modules/eirmod\_balanced\_strategy.F90 \\
@@ -22820,13 +22877,13 @@ or
 \begin{verbatim}
   EIRENE_DEFINES += -DOPTION
 \end{verbatim}
-so that the new option is added to the list. (Unsupported {\tt ksh}
-or {\tt bash} users would use something like
+so that the new option is added to the list, or if using {\tt ksh}
+or {\tt bash}
 \begin{verbatim}
   export EIRENE_DEFINES="$EIRENE_DEFINES -DOPTION"
 \end{verbatim}
 %% $
-). If choosing to use {\tt SOLPS\_CPP} instead, the procedure is the same as
+If choosing to use {\tt SOLPS\_CPP} instead, the procedure is the same as
 in the previous section.
 
 \section{NAG calls in SOLPS}

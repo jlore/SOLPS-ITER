@@ -402,6 +402,10 @@ alias   set_adj    'source $SOLPSTOP/SETUP/adj'
 alias unset_adj    'source $SOLPSTOP/SETUP/noadj'
 alias   set_tao    'source $SOLPSTOP/SETUP/tao'
 alias unset_tao    'source $SOLPSTOP/SETUP/notao'
+alias   set_bfgs   'source $SOLPSTOP/SETUP/bfgs'
+alias unset_bfgs   'source $SOLPSTOP/SETUP/nobfgs'
+alias   set_hess_tgt    'source $SOLPSTOP/SETUP/hess_tgt'
+alias unset_hess_tgt    'source $SOLPSTOP/SETUP/nohess_tgt'
 
 # Check for Motif library
 if (! -e `which mwm`) setenv NO_MOTIF 1
@@ -410,6 +414,17 @@ if ($?NO_MOTIF) then
 endif
 if ($?NO_MOTIF) then
   if (`ldconfig -p | grep 'libXm\.' | wc -l` != 0) unsetenv NO_MOTIF
+endif
+# Compilation also requires Motif development headers; restore NO_MOTIF if they are absent
+if (! $?NO_MOTIF) then
+  if ($?EBROOTMOTIF) then
+    set _xm_found = `sh -c 'find ${EBROOTMOTIF} -name "Xm.h" -print 2>/dev/null' | wc -l`
+  else
+    set _xm_found = 0
+  endif
+  if ($_xm_found == 0) set _xm_found = `sh -c 'find /usr/include /usr/local/include -name "Xm.h" -print 2>/dev/null' | wc -l`
+  if ($_xm_found == 0) setenv NO_MOTIF 1
+  unset _xm_found
 endif
 
 # Check if Manual can be built
@@ -423,6 +438,10 @@ endif
 if (! -x `which cmake`) then
   setenv NO_CMAKE true
   echo 'Did not find a CMake installation. Will revert to traditional Eirene compilation style'
+else
+  if (! $?CMAKE_MAJOR_VERSION) then
+    setenv CMAKE_MAJOR_VERSION `cmake --version | head -1 | cut -d ' ' -f 3 | cut -d '.' -f 1`
+  endif
 endif
 
 # Add any local settings if present

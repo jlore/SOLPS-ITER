@@ -102,10 +102,10 @@ fi
 } || {
   echo File SETUP/setup.ksh.${HOST_NAME}.${COMPILER} not found!
 }
-[ -s ${SOLPSTOP}/SETUP/setup.ksh.${HOST_NAME}.${COMPILER}.local ] && {
+if [ -s ${SOLPSTOP}/SETUP/setup.ksh.${HOST_NAME}.${COMPILER}.local ]; then
   echo Loading SETUP/setup.ksh.${HOST_NAME}.${COMPILER}.local.
   . ${SOLPSTOP}/SETUP/setup.ksh.${HOST_NAME}.${COMPILER}.local
-}
+fi
 
 ulimit -s unlimited
 
@@ -317,12 +317,16 @@ alias set_mpi='. $SOLPSTOP/SETUP/mpi'
 alias unset_mpi='. $SOLPSTOP/SETUP/nompi'
 alias set_ig='. $SOLPSTOP/SETUP/ig'
 alias unset_ig='. $SOLPSTOP/SETUP/noig'
-alias set_tgt='. $SOLPSTOP/SETUP/tgt'
-alias unset_tgt='. $SOLPSTOP/SETUP/notgt'
-alias set_adj='. $SOLPSTOP/SETUP/adj'
-alias unset_adj='. $SOLPSTOP/SETUP/noadj'
-alias set_tao='. $SOLPSTOP/SETUP/tao'
-alias unset_tao='. $SOLPSTOP/SETUP/notao'
+alias set_tgt='. $SOLPSTOP/SETUP/tgt.ksh'
+alias unset_tgt='. $SOLPSTOP/SETUP/notgt.ksh'
+alias set_adj='. $SOLPSTOP/SETUP/adj.ksh'
+alias unset_adj='. $SOLPSTOP/SETUP/noadj.ksh'
+alias set_tao='. $SOLPSTOP/SETUP/tao.ksh'
+alias unset_tao='. $SOLPSTOP/SETUP/notao.ksh'
+alias set_bfgs='. $SOLPSTOP/SETUP/bfgs.ksh'
+alias unset_bfgs='. $SOLPSTOP/SETUP/nobfgs.ksh'
+alias set_hess_tgt='. $SOLPSTOP/SETUP/hess_tgt.ksh'
+alias unset_hess_tgt='. $SOLPSTOP/SETUP/nohess_tgt.ksh'
 
 # Check if Motif library is present
 
@@ -334,6 +338,10 @@ alias unset_tao='. $SOLPSTOP/SETUP/notao'
 }
 [ -n "$NO_MOTIF" ] && {
   [ `ldconfig -p | grep 'libXm\.' | wc -l` != 0 ] && unset NO_MOTIF
+}
+# Compilation also requires Motif development headers; restore NO_MOTIF if they are absent
+[ -z "$NO_MOTIF" ] && {
+  [ "$(find /usr/include /usr/local/include ${EBROOTMOTIF} -name 'Xm.h' 2>/dev/null | wc -l)" -eq 0 ] && export NO_MOTIF=1
 }
 
 # Check if Manual can be built
@@ -348,10 +356,14 @@ export CMAKE=`which cmake`
 [ "$CMAKE" = "" ] && {
   export NO_CMAKE=true
   echo 'Did not find a CMake installation. Will revert to traditional Eirene compilation style'
+} || {
+  [ "$CMAKE_MAJOR_VERSION" = "" ] && {
+    export CMAKE_MAJOR_VERSION=`cmake --version | head -1 | cut -d ' ' -f 3 | cut -d '.' -f 1`
+  }
 }
 
 # Add any local settings if present
-[ -s ${SOLPSTOP}/SETUP/setup.ksh.local ] && {
+if [ -s ${SOLPSTOP}/SETUP/setup.ksh.local ]; then
    echo "Loading SETUP/setup.ksh.local"
    . ${SOLPSTOP}/SETUP/setup.ksh.local
-}
+fi

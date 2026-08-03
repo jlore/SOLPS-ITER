@@ -30,6 +30,11 @@ ifeq ($(strip ${FN}),)
   endif
 endif
 
+# Initialise uninitialized local variables to zero so that the mpi_version
+# probe in the top-level Makefile does not produce a spurious OPEN_MPI=1
+# from uninitialized stack memory when compiled with Intel MPI (mpiifort).
+FCVOPTS += -init zero
+
 # Build with NetCDF tools if available
 ifdef LD_NETCDF
   SOLPS_CPP   += -DCDF_MOVIE
@@ -45,6 +50,11 @@ endif
 # Build with Catalyst if ParaView is in PATH
 ifdef LD_CATALYST
   SOLPS_CPP   += -DCATALYST
+  # Ensure PARAVIEW_MAJOR_VERSION is a valid integer even when the paraview
+  # binary is absent (setup.csh sets it to "" in that case)
+  ifeq ($(strip $(PARAVIEW_MAJOR_VERSION)),)
+    PARAVIEW_MAJOR_VERSION := 0
+  endif
 endif
 
 # Build with Fundamental-Constants module if present
@@ -231,6 +241,9 @@ export LD_MDSPLUS
 export LD_SONNET
 export LD_MPI
 export LD_JSON
+export LD_CATALYST
+export PARAVIEW_MAJOR_VERSION
+export PARAVIEW_INCLUDE
 
 export LIBGKS
 export LIBGRS
@@ -248,6 +261,10 @@ export CARRE_DEFINES
 export EIRENE_DEFINES
 export MPI_CPP
 export JSON_INC
+
+ifndef NO_CMAKE
+  export CMAKE_MAJOR_VERSION
+endif
 
 export MPI_FC
 export FC
