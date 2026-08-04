@@ -205,84 +205,70 @@ set       S45_PATH =  ${SOLPSTOP}/modules/solps4-5/builds/${TOOLCHAIN}
 # Create mirror scripts directory links
 #   - only re-creating links if they are not correct, so that we are compatible with read-only file systems (container)
 set link_scripts="${SOLPSTOP}/scripts/${TOOLCHAIN}"
+set scripts_writable=0
+if (-w ${SOLPSTOP}/scripts) set scripts_writable=1
+set links_available=1
 if (! -d ${link_scripts}) then
-  if (-w ${SOLPSTOP}/scripts) then
+  if ($scripts_writable) then
     mkdir -p ${link_scripts}
+    if ($status != 0) set links_available=0
   else
     echo "Warning: cannot create ${link_scripts}; ${SOLPSTOP}/scripts is not writable"
+    set links_available=0
   endif
 endif
-if (! $?NO_MPI) then
-  foreach suffix ( ".mpi" ".openmp.mpi" )
-    set link_target="${link_scripts}${suffix}"
-    set link_current="`readlink ${link_target}`"
-    if ("${link_current}" != "${link_scripts}") then
-      if (-w ${SOLPSTOP}/scripts) then
-        rm -Rf ${link_target}
-        ln -s ${link_scripts} ${link_target}
-      else if (! -d ${link_target}) then
-        echo "Warning: cannot update ${link_target}; ${SOLPSTOP}/scripts is not writable"
-      endif
+
+if ($links_available) then
+  set link_current="`readlink ${link_scripts}.debug`"
+  if ("${link_current}" == "${link_scripts}") then
+    if ($scripts_writable) then
+      rm -Rf ${link_scripts}.debug
+      mkdir -p ${link_scripts}.debug
+    else
+      echo "Warning: cannot update ${link_scripts}.debug; ${SOLPSTOP}/scripts is not writable"
     endif
-    set link_target="${link_scripts}${suffix}.debug"
-    set link_current="`readlink ${link_target}`"
-    if ("${link_current}" != "${link_scripts}.debug") then
-      if (-w ${SOLPSTOP}/scripts) then
-        rm -Rf ${link_target}
-        ln -s ${link_scripts}.debug ${link_target}
-      else if (! -d ${link_target}) then
-        echo "Warning: cannot update ${link_target}; ${SOLPSTOP}/scripts is not writable"
+  endif
+
+  set active_suffixes = ( ".openmp" )
+  if (! $?NO_MPI) set active_suffixes = ( ${active_suffixes} ".mpi" ".openmp.mpi" )
+  foreach suffix ( ${active_suffixes} )
+    foreach debug_mode ( normal debug )
+      set debug_suffix=""
+      if ("${debug_mode}" == "debug") set debug_suffix=".debug"
+      set link_target="${link_scripts}${suffix}${debug_suffix}"
+      set link_source="${link_scripts}${debug_suffix}"
+      set link_current="`readlink ${link_target}`"
+      if ("${link_current}" != "${link_source}") then
+        if ($scripts_writable) then
+          rm -Rf ${link_target}
+          ln -s ${link_source} ${link_target}
+        else
+          echo "Warning: cannot update ${link_target}; ${SOLPSTOP}/scripts is not writable"
+        endif
       endif
-    endif
+    end
   end
-else
-  foreach suffix ( ".mpi" ".openmp.mpi" )
-    set link_target="${link_scripts}${suffix}"
-    if (-e ${link_target}) then
-      if (-w ${SOLPSTOP}/scripts) then
-        rm -Rf ${link_target}
-      else
-        echo "Warning: cannot remove ${link_target}; ${SOLPSTOP}/scripts is not writable"
-      endif
+
+  if ($?NO_MPI) then
+    set mpi_links_present=0
+    foreach suffix ( ".mpi" ".openmp.mpi" )
+      foreach debug_mode ( normal debug )
+        set debug_suffix=""
+        if ("${debug_mode}" == "debug") set debug_suffix=".debug"
+        set link_target="${link_scripts}${suffix}${debug_suffix}"
+        set link_current="`readlink ${link_target}`"
+        if (-e ${link_target} || "${link_current}" != "") then
+          if ($scripts_writable) then
+            rm -Rf ${link_target}
+          else
+            set mpi_links_present=1
+          endif
+        endif
+      end
+    end
+    if ($mpi_links_present) then
+      echo "Warning: cannot remove MPI toolchain links; ${SOLPSTOP}/scripts is not writable"
     endif
-    set link_target="${link_scripts}${suffix}.debug"
-    if (-e ${link_target}) then
-      if (-w ${SOLPSTOP}/scripts) then
-        rm -Rf ${link_target}
-      else
-        echo "Warning: cannot remove ${link_target}; ${SOLPSTOP}/scripts is not writable"
-      endif
-    endif
-  end
-endif
-set suffix=".openmp"
-set link_target="${link_scripts}${suffix}"
-set link_current="`readlink ${link_target}`"
-if ("${link_current}" != "${link_scripts}") then
-  if (-w ${SOLPSTOP}/scripts) then
-    rm -Rf ${link_target}
-    ln -s ${link_scripts} ${link_target}
-  else if (! -d ${link_target}) then
-    echo "Warning: cannot update ${link_target}; ${SOLPSTOP}/scripts is not writable"
-  endif
-endif
-set link_target="${link_scripts}${suffix}.debug"
-set link_current="`readlink ${link_target}`"
-if ("${link_current}" != "${link_scripts}.debug") then
-  if (-w ${SOLPSTOP}/scripts) then
-    rm -Rf ${link_target}
-    ln -s ${link_scripts}.debug ${link_target}
-  else if (! -d ${link_target}) then
-    echo "Warning: cannot update ${link_target}; ${SOLPSTOP}/scripts is not writable"
-  endif
-endif
-set link_current="`readlink ${link_scripts}.debug`"
-if ("${link_current}" == "${link_scripts}") then
-  if (-w ${SOLPSTOP}/scripts) then
-    rm -Rf ${link_scripts}.debug
-    mkdir -p ${link_scripts}.debug
-  else
-    echo "Warning: cannot update ${link_scripts}.debug; ${SOLPSTOP}/scripts is not writable"
   endif
 endif
 
@@ -337,7 +323,7 @@ alias ssc  'cd ${SOLPSTOP}/modules/Carre'
 alias ssc2 'cd ${SOLPSTOP}/modules/Carre2'
 alias ssu  'cd ${SOLPSTOP}/modules/Uinp'
 alias slib 'cd ${SOLPSTOP}/lib/${HOST_NAME}.${COMPILER}'
-alias sbr  'cd ${SOLPSWORK}'
+if (! $?SOLPS_CENTRAL) alias sbr 'cd ${SOLPSTOP}/runs'
 alias scr  'cd ${SOLPSTOP}/scripts'
 alias stop 'cd ${SOLPSTOP}'
 
