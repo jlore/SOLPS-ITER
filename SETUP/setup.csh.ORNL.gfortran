@@ -1,16 +1,15 @@
 # ORNL site setup for gfortran builds.
 #
-# The compiler and library details below are selected by ORNL_SYSTEM 
+# The compiler and library details below are selected by ORNL_SYSTEM.
 
 set fullhost=`hostname -f`
-set shorthost=`hostname -s`
+set shorthost=`hostname -s | tr '[:upper:]' '[:lower:]'`
 
 if (! $?ORNL_SYSTEM) then
   switch ("$shorthost")
-    case JLORE2025:
+    case jlore*:
       setenv ORNL_SYSTEM WSL
       breaksw
-    case EOS:
     case eos*:
       setenv ORNL_SYSTEM EOS
       breaksw
@@ -51,7 +50,7 @@ switch ("$ORNL_SYSTEM")
     setenv MPI_FC /usr/bin/mpif90
     setenv SOLPS_MPIRUN /usr/bin/mpirun
     alias ls 'ls --color=auto'
-    setenv NO_MANUAL   
+    setenv NO_MANUAL
 
     if ( $?SOLPS_CONDA_ROOT ) then
       set solps_conda_root = ${SOLPS_CONDA_ROOT}
@@ -121,7 +120,7 @@ switch ("$ORNL_SYSTEM")
         echo "ORNL setup: NCAR Graphics disabled; no SOLPS conda environment is active"
       endif
     endif
-    
+
     if (! $?MKLROOT) then
       if (-d /opt/intel/oneapi/mkl/latest) then
         setenv MKLROOT /opt/intel/oneapi/mkl/latest
@@ -186,8 +185,8 @@ switch ("$ORNL_SYSTEM")
     else if (-d /mnt/SOLPS/solps_libs/lib_gfortran) then
       setenv solpslibsroot /mnt/SOLPS/solps_libs/lib_gfortran
     else
-      setenv solpslibsroot /home/jjl/SOLPS/solps_libs/lib_gfortran
-    endif    
+      setenv solpslibsroot ${HOME}/SOLPS/solps_libs/lib_gfortran
+    endif
     setenv GLI_HOME  $solpslibsroot
     setenv MSCL_ROOT $solpslibsroot/lib
     setenv GR_SOURCE $solpslibsroot

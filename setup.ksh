@@ -17,6 +17,9 @@
 #   3. output of `whereami` script
 #   4. fallback to UNKNOWN
 #
+# SETUP/setup.ksh.HOST_NAME.COMPILER.pre is sourced after HOST_NAME and
+# COMPILER are determined, before the main machine/compiler setup file.
+#
 # Variable COMPILER is determined with decreasing priority from:
 #   1. First argument to `source setup.ksh` command
 #   2. $SOLPS_COMPILER_FORCE
@@ -45,7 +48,9 @@ elif [ "$LAST_COMMAND" = "" ]; then
 else
   export SOLPSTOP=$PWD
 fi
-export SOLPSWORK=$SOLPSTOP/runs
+# Preserve a site/user value for central run directories; otherwise use the
+# traditional runs directory under SOLPSTOP.
+[ -z "$SOLPSWORK" ] && export SOLPSWORK=${SOLPSTOP}/runs
 
 # Set HOST_NAME and COMPILER, which will determine setup files to be used
 #------------------------------------------------------------------------
@@ -89,6 +94,14 @@ else
 fi
 
 [ -z "$COMPILER" ] && echo 'COMPILER not defined!'
+
+setup_pre=${SOLPSTOP}/SETUP/setup.ksh.${HOST_NAME}.${COMPILER}.pre
+if [ -s "${setup_pre}" ]; then
+  echo Loading SETUP/setup.ksh.${HOST_NAME}.${COMPILER}.pre.
+  . "${setup_pre}"
+fi
+unset setup_pre
+
 [ -x "`which gmake`" ] && {
   export MAKE=`which gmake`
 } || {
@@ -262,7 +275,7 @@ alias sst='cd ${SOLPSTOP}/modules/Triang'
 alias ssu='cd ${SOLPSTOP}/modules/Uinp'
 alias sbin='cd ${SOLPSTOP}/scripts'
 alias slib='cd ${SOLPSTOP}/lib/${HOST_NAME}.${COMPILER}'
-alias sbr='cd ${SOLPSTOP}/runs'
+alias sbr='cd ${SOLPSWORK}'
 alias scr='cd ${SOLPSTOP}/scripts'
 alias stop='cd ${SOLPSTOP}'
 alias sdg='cd ${SOLPSTOP}/modules/DivGeo/device/${DEVICE}'

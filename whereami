@@ -102,7 +102,8 @@ case "cori*":
   echo NERSC
   breaksw
 case "*.ornl.gov":
-case "jlore2025":
+case "JLORE*":
+case "jlore*":
 case "eos*":
 case "fusion3":
 case "ultrabucky*":

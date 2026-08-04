@@ -54,8 +54,9 @@ else
     setenv SOLPSTOP `cd ${SETUP_PATH}; pwd -L`
   endif
 endif
-# Site/user setup files may define SOLPSWORK for central run directories.
-# If unset, sbr falls back to ${SOLPSTOP}/runs below.
+# Preserve a site/user value for central run directories; otherwise use the
+# traditional runs directory under SOLPSTOP.
+if (! $?SOLPSWORK) setenv SOLPSWORK ${SOLPSTOP}/runs
 
 # Set HOST_NAME and COMPILER, which will determine setup files to be used
 #------------------------------------------------------------------------
@@ -117,7 +118,7 @@ if (-s $setup_pre_cache) then
 endif
 
 set cache_enabled = 0
-if (`uname` != "Darwin" && ${HOST_NAME} != "LINUX" && ! $?SOLPS_DISABLE_ENV_CACHE) then
+if (`uname` != "Darwin" && ! $?SOLPS_DISABLE_ENV_CACHE) then
   set cache_enabled = 1
 endif
 
@@ -336,11 +337,7 @@ alias ssc  'cd ${SOLPSTOP}/modules/Carre'
 alias ssc2 'cd ${SOLPSTOP}/modules/Carre2'
 alias ssu  'cd ${SOLPSTOP}/modules/Uinp'
 alias slib 'cd ${SOLPSTOP}/lib/${HOST_NAME}.${COMPILER}'
-if ($?SOLPSWORK) then
-  alias sbr  'cd ${SOLPSWORK}'
-else
-  alias sbr  'cd ${SOLPSTOP}/runs'
-endif
+alias sbr  'cd ${SOLPSWORK}'
 alias scr  'cd ${SOLPSTOP}/scripts'
 alias stop 'cd ${SOLPSTOP}'
 
@@ -469,7 +466,8 @@ if ($cache_enabled) then   # Assuming to work on some HPC cluster
   rm -f $setup_pre $setup_post $alias_pre
 endif
 
-# List loaded modules, assuming to work on some HPC cluster
-if ($cache_enabled) then
+# List loaded modules when the site environment provides the module command
+which module >& /dev/null
+if ($status == 0) then
   module list
 endif

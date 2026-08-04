@@ -4,7 +4,7 @@
 
 NAGDIR    ?= $(NAG_DIR)
 BLAS_DIR  ?=
-NCARG_ROOT ?= 
+NCARG_ROOT ?=
 NCARG_LIB_DIR ?= $(if $(NCARG_ROOT),$(NCARG_ROOT)/lib,)
 MSCL_ROOT ?=
 GR_ROOT   ?= $(GR_SOURCE)
