@@ -80,7 +80,9 @@ switch ("$ORNL_SYSTEM")
     endif
 
     if ("$solps_conda_root" != "" && -e ${solps_conda_root}/etc/profile.d/conda.csh) then
-      source ${solps_conda_root}/etc/profile.d/conda.csh
+      if ("`alias conda`" == "") then
+        source ${solps_conda_root}/etc/profile.d/conda.csh
+      endif
       if (-d ${solps_conda_root}/envs/${solps_conda_env}) then
         conda activate ${solps_conda_env}
       else
