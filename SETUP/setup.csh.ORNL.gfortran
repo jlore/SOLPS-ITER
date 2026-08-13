@@ -2,7 +2,6 @@
 #
 # The compiler and library details below are selected by ORNL_SYSTEM.
 
-set fullhost=`hostname -f`
 set shorthost=`hostname -s | tr '[:upper:]' '[:lower:]'`
 
 if (! $?ORNL_SYSTEM) then
@@ -35,7 +34,6 @@ if (! $?DEVICE) setenv DEVICE d3d
 if (! $?B2PLOT_DEV) setenv B2PLOT_DEV "ps"
 if (! $?FC) setenv FC gfortran
 setenv DBX gdb
-unsetenv NO_MOTIF
 
 switch ("$ORNL_SYSTEM")
   case WSL:
