@@ -6,18 +6,32 @@
 #
 # JDL
 from netCDF4 import Dataset
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-def main(plotvars):
-    file_in = "b2time.nc"
 
+def find_b2time_file():
+    for candidate in (Path("b2mn.exe.dir") / "b2time.nc", Path("b2time.nc")):
+        if candidate.is_file() and candidate.stat().st_size > 0:
+            return str(candidate)
+
+    raise FileNotFoundError("Could not find b2mn.exe.dir/b2time.nc or b2time.nc")
+
+
+def main(plotvars):
     plotvars = plotvars.split()
 
     try:
+        file_in = find_b2time_file()
+    except FileNotFoundError as err:
+        print("Error: "+str(err))
+        exit(0)
+
+    try:
         ncIn = Dataset(file_in)
-    except:
-        print("Error: Could not open "+file_in)
+    except Exception as err:
+        print("Error: Could not open "+file_in+": "+str(err))
         exit(0)
 
     timesa = ncIn.variables['timesa'][:]
