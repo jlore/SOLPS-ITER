@@ -2633,6 +2633,7 @@ a flat state for new species declared in the species list from {\tt b2ai.dat}.
 \index{b2ftrace}
 \index{b2ftrack}
 \index{b2fplasma}
+\index{b2fplasma.nc}
 \label{sec:b2mn}
 \index{b2mn}
 \index{b2run}
@@ -25378,6 +25379,7 @@ b2fparam \index{b2fparam} & un*formatted & b2mn & b2md b2fu b2pl b2ts & run para
 b2fpardf \index{b2fpardf} & un*formatted & b2ah & b2co b2mn b2yh b2yt & transport parameters \\
 b2fplasma \index{b2fplasma} & unformatted & b2fu b2mn & b2md b2pl b2ts b2uf b2xd & plasma state used \\
  &  &  & b2\_ual\_write & \hspace{1cm} for plotting \\
+b2fplasma.nc \index{b2fplasma.nc} & NetCDF & b2mn & post-processing tools & optional final plasma coefficients and heat fluxes \\
 b2fplasmf \index{b2fplasmf} & formatted & b2uf & b2fu & plasma state used for plotting \\
 b2frates \index{b2frates} & un*formatted & b2ar & b2md b2mn b2pl b2yn & atomic physics rates \\
  &  &  & b2yp b2yr b2yt & \\
@@ -25403,6 +25405,17 @@ tran \index{tran} & formatted & b2mn & & plasma state used for \\
 \end{tabular}
   \end{center}
 \end{table}
+
+The optional {\tt b2fplasma.nc}\index{b2fplasma.nc} file is written by
+{\tt b2mn} when the {\tt b2mndr\_b2fplasma\_netcdf} switch is non-zero.
+It contains a compact NetCDF record of selected final-state plasma
+coefficients and heat fluxes for post-processing. The cell-centered
+variables are {\tt dna0}, {\tt dpa0}, {\tt hce0}, {\tt hci0}, {\tt hcib},
+{\tt vla0}, and {\tt vsa0}; the face-integrated heat-flux variables are
+{\tt fht}, {\tt fhe}, {\tt fhi}, {\tt fhn}, {\tt fhj}, {\tt fhm}, and
+{\tt fhp}. The file also stores the final plasma time and timestep number.
+When the switch is left at its default value, the file is not written and the
+run Makefiles operate normally without it.
 
 \chapter{Subversion repository logs}
 \index{subversion repository logs}
