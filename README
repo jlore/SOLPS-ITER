@@ -1,3 +1,45 @@
+ORNL quick start (wg-release-ornl)
+==================================
+
+ORNL_ONLY: This branch skips the access-controlled ADAS submodule by default.
+SOLPS instead uses the public OpenADAS and Zenodo data installed under
+`data.local/adas`.
+
+After cloning this fork and checking out `wg-release-ornl`, the recommended
+one-shot update and build is:
+
+    tcsh
+    source setup.csh gfortran
+    solps-iter_update_ornl
+
+The updater selects `wg-release-ornl`, pulls the main repository and its public
+submodules, installs the public ADAS data, and compiles SOLPS.
+
+The equivalent step-by-step setup is:
+
+    git checkout wg-release-ornl
+    git pull
+    git submodule sync --recursive
+    git submodule update --init --recursive
+    tcsh
+    source setup.csh gfortran
+    fetch_adas_datafiles
+
+The SOLPS build also runs the ADAS data check and invokes
+`fetch_adas_datafiles` when neither a usable ADAS submodule nor a complete
+public-data cache is present.
+
+Users with access to the ITER AMNS ADAS repository can re-enable that submodule
+for their local checkout without modifying `.gitmodules`:
+
+    git config submodule.ADAS.active true
+    git config submodule.ADAS.update checkout
+    git submodule update --init --checkout modules/adas
+
+An existing `data.local/adas` cache remains available and is preferred by the
+standard SOLPS data search paths.
+
+
 Getting the latest code updates
 ===============================
 

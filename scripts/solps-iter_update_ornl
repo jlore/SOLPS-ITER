@@ -58,24 +58,38 @@ DivGeo:
 
 ADAS:
   echo "Updating ADAS"
-  set adas_url = `git config -f $SOLPSTOP/.gitmodules --get submodule.ADAS.url`
-  set adas_available = 0
-  if ("$adas_url" != "") then
-    env GIT_SSH_COMMAND="ssh -o BatchMode=yes -o ConnectTimeout=5 -o ConnectionAttempts=1" git ls-remote --exit-code "$adas_url" HEAD >& /dev/null
-    if ($status == 0) set adas_available = 1
+  # ORNL_ONLY: the branch default is public OpenADAS/Zenodo data. A local
+  # submodule.ADAS.update=checkout setting opts an authorized user back in.
+  set adas_update = `git config --get submodule.ADAS.update`
+  if ("$adas_update" == "") then
+    set adas_update = `git config -f $SOLPSTOP/.gitmodules --get submodule.ADAS.update`
   endif
+  if ("$adas_update" == "none") then
+    echo "Using public OpenADAS/Zenodo data; the ADAS submodule is disabled."
+    $SOLPSTOP/scripts/fetch_adas_datafiles && goto compile || exit
+  endif
+
+  set adas_available = 0
+  $SOLPSTOP/scripts/check_adas_repository_access
+  if ($status == 0) set adas_available = 1
   if ($adas_available) then
     cd $SOLPSTOP
     git submodule update --init --checkout modules/adas || goto local
   endif
 
   if (-s $SOLPSTOP/modules/adas/.gitattributes) then
-    cd $SOLPSTOP/modules/adas
-    set repo="ADAS"
-    git fetch --prune
-    git checkout develop && echo "Checked out ADAS develop branch" || goto branch
-    git pull && goto compile || goto local
+    if ($adas_available) then
+      cd $SOLPSTOP/modules/adas
+      set repo="ADAS"
+      git fetch --prune
+      git checkout develop && echo "Checked out ADAS develop branch" || goto branch
+      git pull && goto compile || goto local
+    else
+      echo "Using the existing local ADAS checkout without updating it."
+      goto compile
+    endif
   else
+    echo "The ADAS repository is unavailable; using public data instead."
     $SOLPSTOP/scripts/fetch_adas_datafiles && goto compile || exit
   endif
 

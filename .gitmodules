@@ -29,3 +29,5 @@
 	path = modules/adas
 	url = ssh://git@git.iter.org/imex/amns-adas.git
 	branch = .
+	# ORNL_ONLY: use the public OpenADAS/Zenodo fallback by default.
+	update = none
