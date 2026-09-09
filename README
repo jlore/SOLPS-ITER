@@ -29,6 +29,14 @@ The SOLPS build also runs the ADAS data check and invokes
 `fetch_adas_datafiles` when neither a usable ADAS submodule nor a complete
 public-data cache is present.
 
+Important Neon data note: the OpenADAS version of
+`adf11/scd96/scd96_ne.dat` contains known unphysical ionization-rate features
+and should not be used for Neon cases. If you have authorized access to the
+corrected AMNS ADAS data, replace
+`data.local/adas/adf11/scd96/scd96_ne.dat` with the corrected 19 April 2020
+version. The ORNL setup prints a warning when it
+detects the known-bad OpenADAS version.
+
 Users with access to the ITER AMNS ADAS repository can re-enable that submodule
 for their local checkout without modifying `.gitmodules`:
 
@@ -280,4 +288,3 @@ for the various versions of SOLPS-ITER, and
 make clean_<module>_debug
 make clean_<module_XXX>_debug
 for a particular module.
-

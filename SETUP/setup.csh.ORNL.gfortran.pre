@@ -3,3 +3,24 @@
 # the setup script is sourced.
 
 setenv SOLPS_DISABLE_ENV_CACHE 1
+
+# ORNL_ONLY: Warn when the public fallback contains the known-bad Neon
+# ionization table. A corrected replacement at the same path has a different
+# checksum and will not trigger this warning.
+set neon_data_file = "${SOLPSTOP}/data.local/adas/adf11/scd96/scd96_ne.dat"
+set neon_bad_sha256 = "3857a7a0e521f02e048f832258e1594716aa3cf4ce776c9dfb4059c3c88d0d7c"
+
+if (-f "$neon_data_file") then
+    set neon_file_sha256 = `sha256sum "$neon_data_file" | awk '{print $1}'`
+    if ("$neon_file_sha256" == "$neon_bad_sha256") then
+        echo ""
+        echo "WARNING (ORNL_ONLY): Known-bad OpenADAS Neon ionization data detected:"
+        echo "  $neon_data_file"
+        echo "Do not use this file for Neon cases. If you have authorized AMNS ADAS"
+        echo "access, replace it with the corrected 19 April 2020 version."
+        echo ""
+    endif
+    unset neon_file_sha256
+endif
+
+unset neon_data_file neon_bad_sha256
