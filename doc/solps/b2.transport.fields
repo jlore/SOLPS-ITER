@@ -1,0 +1,13 @@
+! Illustrative partial-field input.  Use with
+!   b2tqna_input_fields = 2
+! in b2mn.dat.  This example requires nCv >= 4 and ns >= 3.
+&transport
+  dna(1:4,1) = 0.30, 0.30, 0.40, 0.40
+  hci(1:4,1) = 1.00, 1.00, 1.50, 1.50
+  hce(1:4)   = 2.00, 2.00, 2.50, 2.50
+  vla(1:4,1,1) = 0.00, -0.10, -0.10, 0.00
+
+! Copy the supplied species-1 fields directly to species 2.
+  dna_ns(2) = 1
+  hci_ns(2) = 1
+/

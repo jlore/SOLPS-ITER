@@ -3513,6 +3513,77 @@ private flux region.
 
 \VerbatimInput[fontsize=\footnotesize]{b2.transport.inputfile}
 
+\subsection{b2.transport.fields}
+\index{b2.transport.fields}\index{b2tqna\_input\_fields}
+\index{two-dimensional transport coefficients}
+\label{lab:b2:transport:fields}
+
+The file {\tt b2.transport.fields} supplies transport coefficients at
+individual B2.5 cells.  It is enabled by setting
+{\tt b2tqna\_input\_fields} in {\tt b2mn.dat}.  The allowed values are:
+\begin{description}
+  \item[0] Do not read the file.
+  \item[1] Require each field that is present to specify every one of
+    the {\tt nCv} cells, including guard cells.  An incomplete field is
+    treated as an input error.
+  \item[2] Permit partial fields.  At cells omitted from the namelist,
+    the coefficient calculated earlier by {\tt b2tqna} is retained.
+\end{description}
+
+The file contains a Fortran namelist named {\tt transport}.  Species
+indices run from 0 to $ns-1$.  The direction index used by {\tt vla},
+{\tt vma}, {\tt hvi}, and {\tt hve} is 0 for the poloidal component and
+1 for the radial component.  The first index is the internal B2.5
+{\tt iCv} index.  A producer must therefore use exactly the same grid,
+cell ordering, guard-cell convention, and species ordering as the run.
+The reader does not perform grid interpolation or remapping.
+
+The accepted fields and their input units are:
+\begin{center}
+\begin{tabular}{lll}
+Field & Shape & Input quantity and units \\
+\hline
+{\tt dna} & {\tt (nCv,0:ns-1)} & density diffusivity, $\mathrm{m^2/s}$ \\
+{\tt dpa} & {\tt (nCv,0:ns-1)} & pressure diffusivity, $\mathrm{m^2/s}$ \\
+{\tt vla} & {\tt (nCv,0:1,0:ns-1)} & particle velocity, $\mathrm{m/s}$ \\
+{\tt vma} & {\tt (nCv,0:1,0:ns-1)} & momentum velocity, $\mathrm{m/s}$ \\
+{\tt vsa} & {\tt (nCv,0:ns-1)} & kinematic viscosity, $\mathrm{m^2/s}$ \\
+{\tt hci} & {\tt (nCv,0:ns-1)} & species heat diffusivity, $\mathrm{m^2/s}$ \\
+{\tt hvi} & {\tt (nCv,0:1)} & all-atom thermal strange velocity, $\mathrm{m/s}$ \\
+{\tt hce} & {\tt (nCv)} & electron heat diffusivity, $\mathrm{m^2/s}$ \\
+{\tt hve} & {\tt (nCv,0:1)} & electron thermal strange velocity, $\mathrm{m/s}$ \\
+{\tt sig} & {\tt (nCv)} & conductivity diffusivity, $\mathrm{m^2/s}$ \\
+{\tt alf} & {\tt (nCv)} & thermo-electric diffusivity, $\mathrm{m^2/s}$
+\end{tabular}
+\end{center}
+
+The file and species mappings are read once.  On every transport
+evaluation, the reader converts the cached diffusivity-like quantities
+to the internal coefficients using the current local density,
+temperature, charge, and species mass.  Diffusivity, viscosity, and
+conductivity inputs must be finite and non-negative.  Velocity-like
+fields and {\tt alf} may be signed.
+
+The optional mapping arrays {\tt dna\_ns}, {\tt dpa\_ns},
+{\tt vla\_ns}, {\tt vma\_ns}, {\tt vsa\_ns}, and {\tt hci\_ns} assign a
+source-species field to a target species.  For example,
+{\tt hci\_ns(2)=1} assigns the field supplied for species 1 to species
+2.  The value $-1$ means no mapping.  Mappings always refer to the
+original source fields and are not chained through other mappings.
+
+These fields are applied after the standard coefficients and
+{\tt b2.transport.inputfile}.  They are applied before the optional
+user-transport, k-epsilon, AFN, ballooning, and minimum-coefficient
+operations.  Those later operations may therefore replace, rescale, or
+limit an imported value.  Differentiated executables currently reject
+a nonzero {\tt b2tqna\_input\_fields} setting explicitly.
+
+The following example uses mode 2 and supplies the first four cells of
+several fields.  It assumes at least three species so that the mapping
+to species 2 is meaningful.
+
+\VerbatimInput[fontsize=\footnotesize]{b2.transport.fields}
+
 \subsection{b2.sources.profile}
 \index{b2.sources.profile}\index{b2sral}\index{b2sral\_inputfile}\index{sources}\label{lab:b2:sources:profile}
 
