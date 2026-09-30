@@ -51,7 +51,7 @@ else
   echo and restart the session
   if ("$SOLPS_TOOLCHAIN_VERSION" == "2023b") then
     module load IMAS-Fortran/5.5.0-foss-2023b-DD-4.1.0
-    module load IDStools/2.4.0-foss-2023b
+    module load IDStools/2.5.0-foss-2023b
     module load GGD/1.14.0-foss-2023b-DD-4.1.0
     module load AMNS/1.6.0-foss-2023b-DD-4.1.0
     module load IMAS-ParaView/2.3.0-foss-2023b
@@ -78,11 +78,12 @@ else
     module load json-fortran/8.5.2-GCC-13.2.0
     module load PETSc/3.20.6-foss-2023b
     module load imkl/2023.2.0
+    module load SuiteSparse/7.1.0-foss-2023b
     setenv GKSDIR /work/imas/opt/EasyBuild/software/GR/0.73.6-GCCcore-13.2.0
   else
     module load git/2.54.0-GCCcore-14.3.0
     module load IMAS-Fortran/5.6.0-foss-2025b-DD-4.1.1
-    module load IDStools/2.4.1-foss-2025b
+    module load IDStools/2.5.0-foss-2025b
     module load GGD/1.14.0-foss-2025b-DD-4.1.1
     module load AMNS/1.6.0-foss-2025b-DD-4.1.1
     module load IMAS-ParaView/2.4.0-foss-2025b
@@ -105,6 +106,7 @@ else
     module load json-fortran/9.0.5-GCC-14.3.0
     module load PETSc/3.24.0-foss-2025b
     module load imkl/2025.2.0
+    module load SuiteSparse/7.11.0-gfbf-2025b
     setenv GKSDIR /work/imas/opt/EasyBuild/software/GR/0.73.6-GCC-14.3.0
   endif
   setenv SYSNAME x86_64_rhel9
@@ -142,7 +144,8 @@ if (`where paraview-config` == "") then
 else
   # See ParaViewCatalystUsersGuide_v2.pdf Sec 3.7.2 Linking with Python ...
   setenv PARAVIEW_MAJOR_VERSION `sh -c 'paraview --version 2>/dev/null' | cut -d '.' -f 1 | cut -d ' ' -f 3`
-  if ("${PARAVIEW_MAJOR_VERSION}" == "") then
+  if ("${PARAVIEW_MAJOR_VERSION}" == "") setenv PARAVIEW_MAJOR_VERSION 0
+  if ("${PARAVIEW_MAJOR_VERSION}" == "0") then
     echo "Warning: paraview-config found but paraview binary missing. ParaView with Catalyst will not be compiled-in!"
   else if (${CMAKE_MAJOR_VERSION} > 2) then
     # Avoid a naming clash
