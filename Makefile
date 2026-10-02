@@ -334,7 +334,7 @@ endif
         b25 b25_openmp b25_mpi b25_openmp_mpi b25_mpi_openmp \
         b25_nox b25_nox_openmp b25_nox_mpi b25_nox_openmp_mpi b25_nox_mpi_openmp \
         b25_ig b25_all b25_all_mpi b25_all_openmp b25_all_openmp_mpi b25_all_mpi_openmp \
-        eirene eirene_mpi eirene_openmp eirene_openmp_mpi \
+        eirene_database_links eirene eirene_mpi eirene_openmp eirene_openmp_mpi \
         eirene_nox eirene_nox_mpi eirene_openmp_nox eirene_nox_openmp_mpi \
         b25eirene b25eirene_mpi b25eirene_openmp b25eirene_openmp_mpi b25eirene_mpi_openmp \
         b25eirene_nox b25eirene_nox_mpi b25eirene_ig b25eirene_all_mpi b25eirene_nox_mpi \
@@ -443,6 +443,10 @@ endif
 divgeo_nox:
 	+cd modules/DivGeo/equtrn;  ${MAKEO}
 	+cd modules/DivGeo/convert; ${MAKEO}
+
+# Keep Eirene database aliases valid for both the legacy and CMake builds.
+eirene_database_links:
+	+cd modules/Eirene; ${MAKEF} links
 
 ifndef NO_CMAKE
 
@@ -776,6 +780,24 @@ endif
 	+cd modules/B2.5; ${MAKEO} USE_EIRENE=-DB25_EIRENE ${OMP_OPTB} ${MPI_OPTS} NOPLOT
 
 b25eirene_nox_mpi_openmp: b25eirene_nox_openmp_mpi
+
+# B2.5 preprocessing uses the Eirene atomic databases even for standalone
+# runs, so every B2.5/Eirene build variant refreshes the generated aliases.
+_eirene_database_consumers := \
+	eirene eirene_mpi eirene_openmp eirene_openmp_mpi \
+	eirene_nox eirene_nox_mpi eirene_nox_openmp eirene_nox_openmp_mpi \
+	b25 b25_diff_d b25_diff_b b25_diff_dd b25_tgt b25_adj b25_hess_tgt \
+	b25_all b25_openmp b25_mpi b25_openmp_mpi b25_mpi_openmp b25_nox b25_ig \
+	b25_all_openmp b25_nox_openmp b25_openmp_nox b25_nox_mpi b25_mpi_nox \
+	b25_nox_openmp_mpi b25_nox_mpi_openmp b25_mpi_openmp_nox \
+	b25_openmp_mpi_nox b25_all_mpi b25_all_openmp_mpi b25_all_mpi_openmp \
+	b25eirene b25eirene_all b25eirene_nox b25eirene_openmp b25eirene_mpi \
+	b25eirene_openmp_mpi b25eirene_mpi_openmp b25eirene_nox_openmp \
+	b25eirene_nox_mpi b25eirene_ig b25eirene_all_openmp b25eirene_all_mpi \
+	b25eirene_all_openmp_mpi b25eirene_all_mpi_openmp \
+	b25eirene_nox_openmp_mpi b25eirene_nox_mpi_openmp
+
+$(_eirene_database_consumers): eirene_database_links
 
 uinp: b25eirene carre
 	+cd modules/Uinp; ${MAKEO}
@@ -1168,7 +1190,7 @@ debug: solps_debug
 # there is no parallel race.  The sub-makes (SOLPS_DEBUG=yes) then derive
 # NC_EXE_DIR = scripts/${TOOLSHORT} (no EXT_DBG suffix) and find the non-debug
 # NCEXECS files already present, skipping the nc_reduce/nc2text_simple build.
-b25%_debug: ${DEBUG_NCEXECS} ${NCEXECS}
+b25%_debug: eirene_database_links ${DEBUG_NCEXECS} ${NCEXECS}
 	${MAKE} $(@:%_debug=%) SOLPS_DEBUG=yes
 
 # solps* debug targets (e.g. solps_nox_debug) spawn a sub-make that independently

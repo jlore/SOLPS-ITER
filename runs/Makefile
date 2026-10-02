@@ -757,11 +757,13 @@ stra.dat :
 weis.dat :
 	ln -sf ${SOLPSTOP}/modules/B2.5/Database/weis.dat .
 
+# Use the canonical database files rather than chaining through generated
+# aliases in the source tree.
 AMJUEL:
-	ln -sf ${SOLPSTOP}/modules/Eirene/Database/AMJUEL .
+	ln -sf ${SOLPSTOP}/modules/Eirene/Database/AMdata/amjuel.tex AMJUEL
 
 HYDHEL:
-	ln -sf ${SOLPSTOP}/modules/Eirene/Database/HYDHEL .
+	ln -sf ${SOLPSTOP}/modules/Eirene/Database/AMdata/hydhel.tex HYDHEL
 
 $(savefiles):
 	touch $(shell echo ${PLASMASTATE} | sed -e 's:plasmastate:b2.dummy_save.parameters:')
