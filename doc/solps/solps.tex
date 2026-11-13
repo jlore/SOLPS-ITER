@@ -2345,6 +2345,20 @@ Those files need to contain fields according to:
   field information that are read in from the mesh file (see Appendix~\ref{lis:b2cdci})
 \end{description}
 
+\index{traduit.out.b2us}
+When reading an unstructured {\tt traduit.out.b2us} file, {\tt b2ag}
+uses the supplied flux-surface records to set the poloidal flux $\psi$
+at the mesh vertices. For each surface, it takes the faces listed in
+{\tt fsFc} and assigns the surface value {\tt fsPsi} to both vertices
+of every listed face. Vertices not on a listed surface retain their
+input values at this step. This makes $\psi$ constant along each listed
+flux surface before guard cells are created and the magnetic field is
+calculated from the vertex values.
+
+This assignment is performed automatically when {\tt b2ag} reads the
+unstructured grid input. It does not affect an existing {\tt b2fgmtry}
+read by {\tt b2mn}.
+
 \newpage\section{b2ah, setting up the default physics parameters}
 \index{b2fpardf}\label{sec:b2ah}\index{b2ah}\index{b2run}
 
@@ -4825,6 +4839,53 @@ ENDDO
   \item[IR] Radial index of the {\tt Eirene} grid cell which face normal is being inverted
   \item[IP] Poloidal index of the {\tt Eirene} grid cell which face normal is being inverted
 \end{description}
+
+\index{b2us}\index{b2us\_nasmod\_mode}\index{NASMOD}
+When converting a case for the wide-grid code, {\tt b2us} reads
+{\tt input.dat} and writes the converted {\tt Eirene} input to
+{\tt input.dat.us}. The switch {\tt b2us\_nasmod\_mode} is specified
+in the {\tt b2mn.dat} read by {\tt b2us}. It controls the conversion
+of the endpoint records in block 15; conversion of the other input
+blocks is not disabled by this switch. The following applies to the
+block-15 format without a preceding {\tt GENERAL} or
+{\tt BIASED\_GARCHING} line.
+
+\begin{description}
+\item[{\tt b2us\_nasmod\_mode=0} (default)] Convert the endpoint
+  records to {\tt Eirene} node numbers. With positive {\tt NASMOD},
+  the records follow the corner ordering described above, and
+  {\tt b2us} supplies the corresponding node number in {\tt ICOOR}.
+  With {\tt NASMOD=0}, there are no endpoint records.
+\item[{\tt b2us\_nasmod\_mode=1}] Use this setting when the records
+  already contain the correct {\tt Eirene} node numbers in
+  {\tt ICOOR}. The endpoint records are copied without converting
+  those numbers. {\tt NASMOD} must be nonnegative; a negative value
+  causes {\tt b2us} to stop with an error.
+\end{description}
+
+For a vessel-mode case with void regions, negative {\tt NASMOD} allows
+the input to identify boundary endpoints by their {\tt B2.5} face
+labels instead of the corner ordering described above. This requires
+{\tt b2us\_nasmod\_mode=0}. After the {\tt NADMOD} records, supply
+{\tt ABS(NASMOD)} records with three integers in format {\tt (3I6)}:
+\begin{verbatim}
+LIMPOS   ONETWO   FCLBL
+\end{verbatim}
+Here {\tt FCLBL} is the boundary-face label stored in {\tt fcLbl},
+not a face-region number or an {\tt Eirene} node number. The conversion
+assumes that the faces with that label form one connected open chain. {\tt b2us}
+orders its vertices with the right-hand normal pointing out of the
+physical mesh. {\tt ONETWO=1} selects the first vertex of this chain
+and endpoint 1 of surface {\tt LIMPOS}; {\tt ONETWO=2} selects the
+last vertex and endpoint 2. The endpoint numbering of the additional
+surface must therefore agree with this boundary ordering.
+
+The converter replaces {\tt FCLBL} with the corresponding
+{\tt Eirene} node number in {\tt ICOOR} and writes
+{\tt ABS(NASMOD)} as the output count. Thus the negative count and
+face labels describe input to {\tt b2us}, not the input to be read
+directly by {\tt Eirene}. The resulting {\tt input.dat.us} must be
+used with the matching converted triangular mesh.
 
 \subsection{Information for MPI}
 
