@@ -5453,6 +5453,17 @@ When computing the residuals in dynamic mode, the contribution from the time der
 \label{sec:time-dep-puff}
 Several functional forms for setting time-dependent gas puff inputs can be set using {\tt b2.neutrals.parameters}. To use these options, the switches {\tt TIME\_DEP\_PUFF} and {\tt TIME\_DEP\_PUFF\_FUNC} should be set to {\tt true} for the intended stratum. Six functional forms can be selected, corresponding to the value of {\tt TIME\_DEP\_PUFF\_CASE}, with parameters controlled by {\tt TIME\_DEP\_PUFF\_PARAM}. These are described in Table \ref{tab:time-dep-puff} with examples shown in Fig.~\ref{fig:time-dep-puff}.
 
+Alternatively, set {\tt TIME\_DEP\_PUFF} true and
+{\tt TIME\_DEP\_PUFF\_FUNC} false for a tabulated C-stratum puff.
+{\tt NGPDATA} gives the number of points, up to 1001 in the ORNL branch.
+{\tt GPDATA(:,1,istra)} contains strictly increasing times in seconds and
+{\tt GPDATA(:,2,istra)} contains nonnegative particle rates in particles/s.
+The rate is interpolated linearly between points; before the first point it
+uses {\tt USERFLUXPARM(istra,1)}, and at or after the last point it holds the
+last rate. Analytic functions do not require this table. Periods and step
+durations must be positive. The {\tt b2yt} converter preserves the analytic
+parameters and all table points while remapping strata.
+
 \begin{table}[hbtp]
   \centering
   \begin{tabular}{|c|c|c|c|c|} \hline
@@ -5475,9 +5486,9 @@ Several functional forms for setting time-dependent gas puff inputs can be set u
              &   & 2 & step size ($\#/s$) & 2 \\ \hline
              &   & 3 & step duration ($s$) & 0.5 \\ \hline
     Triangle & 5 & 1 & offset ($\#/s$) & 6 \\ \hline
-             &   & 2 & slope ($/s^2$) & 2 \\ \hline
+             &   & 2 & amplitude ($\#/s$) & 2 \\ \hline
              &   & 3 & period ($s$) & 0.25 \\ \hline
-             &   & 4 & phase ($rad$) & 0 \\ \hline
+             &   & 4 & time shift ($s$) & 0 \\ \hline
   \end{tabular}
   \caption{Input switch settings for time-dependent puff functions.}
   \label{tab:time-dep-puff}
@@ -5492,6 +5503,31 @@ Several functional forms for setting time-dependent gas puff inputs can be set u
     \caption{Examples of the time-dependent puff functions.}
     \label{fig:time-dep-puff}
 \end{figure}
+
+\section{ORNL time-dependent input power}
+\label{sec:time-dep-power}
+The ORNL-only boundary namelist option {\tt POWER\_TIME\_DEP\_CASE(ib)=2}
+applies a bounded linear power ramp to boundary {\tt ib}. It requires
+{\tt BCCHAR(ib)='S'}, {\tt BCENE(ib)=8}, and {\tt BCENI(ib)=8}.
+The default case value is $-1$, which leaves the specified powers unchanged.
+For each channel, {\tt POWER\_TIME\_DEP\_PARAM(1:4,channel,ib)} contains
+$(P_0,P_1,t_0,t_1)$ in W, W, s, and s. Channel 1 denotes electrons and
+channel 2 ions. With $t_1>t_0$ and nonnegative endpoint powers,
+\[
+  P(t)=P_0+(P_1-P_0)
+  \min\left(1,\max\left(0,\frac{t-t_0}{t_1-t_0}\right)\right).
+\]
+The time is the absolute B2.5 simulation time, including the restart time.
+Each evaluation uses the specified endpoints rather than adding an increment
+to the previous power.
+
+The separate ORNL-only logical {\tt TIME\_DEP\_POWER}, default false,
+selects the fixed waveform $3\,{\rm MW}+0.5\,{\rm MW}\sin(2\pi\,8t)$
+on each S-boundary channel having energy boundary condition 8.
+It is independent of the ramp selector and cannot be enabled together with it.
+The waveform uses the code value of $\pi$.
+The {\tt b2yt} converter preserves both power controls when rewriting the
+boundary namelist.
 
 \section{Averaging scheme}
 \label{sec:B2Eirene:averaging}\index{Averaging}\index{b2faveri}\index{b2favere}\index{b2fstate}\index{b2fstati}
@@ -15471,6 +15507,23 @@ If set to {\tt 1}, then a few 2D arrays ($n_e$, $T_e$, $T_i$) are output with ea
 to {\tt 2}, then additional quantities such as fluxes are added, see below Table
 \ref{tab:5db2time}.
 
+In the ORNL branch, coupled runs also write {\tt tflux} for any nonzero
+{\tt b2mwti\_2dwrite} value. Values $-1$ and $-2$ select only this extra
+stratum history; values 1 and 2 include the additional EIRENE fields listed
+below. Only active species and enabled density tallies are written, with
+triangle fields omitted for a mesh without triangles. These are the current
+EIRENE estimates, not the time-averaged neutral densities.
+
+{\tt pdena}, {\tt pdenm}, {\tt edena}, and {\tt edenm} retain the native
+EIRENE units used by the ORNL histories; these differ from the SI particle
+densities written to {\tt eirenemovies.nc}. Their Fortran dimension order is
+(species, triangle, time). Radiation uses (B2 x, B2 y, species, time),
+including B2 guard cells, and sums all source strata. {\tt tflux} uses
+(stratum, time), in the order of {\tt b2.neutrals.parameters}.
+When appending to an existing history, absent optional fields are added and
+their earlier records remain NetCDF fill values. Existing field dimensions
+must match the current case.
+
 \begin{longtable}{|l|l|l|}
   \hline
   \multicolumn{3}{|l|}{\small\it continued from previous page} \\
@@ -15488,6 +15541,10 @@ to {\tt 2}, then additional quantities such as fluxes are added, see below Table
     ne2d \index{ne2d}\index{b2time.nc, ne2d} & electron density & $m^{-3}$ \\
     te2d \index{te2d}\index{b2time.nc, te2d} & electron temperature & $eV$ \\
     ti2d \index{ti2d}\index{b2time.nc, ti2d} & ion temperature & $eV$ \\
+    tflux & ORNL coupled source strength per stratum & $s^{-1}$ \\
+    pdena, pdenm & ORNL atom/molecule density on EIRENE triangles & $cm^{-3}$ \\
+    edena, edenm & ORNL atom/molecule energy density on EIRENE triangles & $eV\,cm^{-3}$ \\
+    eneutrad, emolrad, eionrad & ORNL atom/molecule/test-ion radiation per B2 cell & $W$ \\
   \hline
   \multicolumn{3}{|c|}{and if {\tt b2mwti\_2dwrite} = 2} \\
   \hline
