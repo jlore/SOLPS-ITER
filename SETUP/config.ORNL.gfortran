@@ -74,6 +74,9 @@ CARRE_DEFINES  =
 EIRENE_DEFINES =
 FFLAGSEXTRA    =
 
+# Automatic arrays and compiler temporaries use the process or thread stack.
+FFLAGSEXTRA   += -fstack-arrays
+
 # Optional structured PARDISO backend, with LP64 and sequential MKL linkage.
 # Set SOLPS_PARDISO=0 on the make command line to compile without the backend.
 SOLPS_PARDISO ?= 1
