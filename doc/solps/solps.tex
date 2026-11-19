@@ -5020,6 +5020,20 @@ no longer recycling/sputtering surfaces but rather only switching surfaces to th
 triangular grid regions.
 
 \section{Output files}
+
+The ORNL structured branch provides the \texttt{output\_level\_ornl}
+switch in \texttt{b2mn.dat}, with default 0 and valid range 0--10.
+Level 8 enables detailed solver, iteration and transport messages.
+Level 10 also enables regional tally text and the default namelist
+echoes. Below level 10, \texttt{WRITE\_NML\_BND},
+\texttt{WRITE\_NML\_NEUT}, \texttt{WRITE\_NML\_NUM} and
+\texttt{WRITE\_NML\_TRANSP} default to false; explicit values in the
+individual namelists take precedence. Warnings, errors, timestep timing,
+explicitly requested solver timing and convergence monitoring remain
+available at every level. All tally calculations and existing NetCDF
+and trace output are retained. This switch does not control EIRENE
+output or change numerical or physical settings.
+
 \index{fort.44}\index{fort.46}\index{fort.44\_aver}\index{fort.46\_aver}
 
 When running the coupled version of \SOLPSITERns, you will obtain additional output files, named {\tt fort.44} and {\tt fort.46}, which contain data computed from {\tt Eirene}. The contents of the {\tt fort.44} file is a series of data blocks, each starting with a title line, after a header providing the grid size and species list, as well as a format identifier. The relevant dimensions are (please also refer to the {\tt Eirene} manual for further details and to the code for the actual way the arrays are written out):
