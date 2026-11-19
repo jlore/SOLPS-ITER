@@ -34,7 +34,7 @@ endif
 LD_NETCDF ?= -L${NETCDF_F_ROOT}/lib -lnetcdff -L${NETCDF_C_ROOT}/lib -lnetcdf
 
 ifneq ($(wildcard $(MKLROOT)),)
-  $(info ORNL config: PARDISO enabled using MKLROOT=${MKLROOT})
+  $(info ORNL config: MKL available using MKLROOT=${MKLROOT})
   MKL_LIB_DIR ?= ${MKLROOT}/lib
   LD_NAG      = -L${MKL_LIB_DIR} -lmkl_gf_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
 else
@@ -73,6 +73,16 @@ B25_DEFINES    =
 CARRE_DEFINES  =
 EIRENE_DEFINES =
 FFLAGSEXTRA    =
+
+# Optional structured PARDISO backend, with LP64 and sequential MKL linkage.
+# Set SOLPS_PARDISO=0 on the make command line to compile without the backend.
+SOLPS_PARDISO ?= 1
+ifneq ($(wildcard $(MKLROOT)/include/mkl_pardiso.fi),)
+ifeq ($(SOLPS_PARDISO),1)
+  B25_DEFINES += -DSOLPS_PARDISO
+  FFLAGSEXTRA += -I${MKLROOT}/include
+endif
+endif
 
 
 #!!!Local Variables:

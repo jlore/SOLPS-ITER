@@ -21163,6 +21163,31 @@ Additionally, system-wide compiler flags can be provided by means of the
 \item[NO\_NAG] \index{NO\_NAG} No {\tt NAG} libraries available
 \item[PGF90] \index{PGF90} To be used when compiling with the Portland Group {\tt Fortran-90} compiler
 \item[PSR] \index{PSR} Specific to the Pacific Sierra VAST compiler
+\item[SOLPS\_PARDISO] \index{SOLPS\_PARDISO}
+Enables the optional MKL PARDISO backend for the structured 5-point
+and 7-point solvers. Set {\tt b2ux5p\_style=3} and
+{\tt b2ux7p\_style=4} in {\tt b2mn.dat} to select it; setting both
+switches to 2 selects MA28, which remains the default. The 9-point and
+11-point solver selections are independent and unchanged.
+
+The backend requires the MKL Fortran include directory, LP64 libraries
+and a Fortran 2003 compiler. It is unavailable in {\tt LEGACYCOMP} and
+B2 OpenMP builds; coupled MPI runs are supported. Selecting PARDISO in
+an unsupported build stops with an error. The ORNL GNU configuration
+enables this backend when MKL is available and links sequential MKL.
+Passing {\tt SOLPS\_PARDISO=0} to make disables the backend at build
+time. Switching solvers at run time does not require a rebuild of an
+executable built with PARDISO support.
+
+The real unsymmetric solve uses the explicit WG parameter array, with
+fresh analysis, factorization and solution for each matrix. MKL memory
+is released after each solve. A componentwise backward-error limit of
+$10^{-10}$ rejects inaccurate corrections; this limit is independent
+of {\tt ma28\_for\_7d\_prec}. The existing sparse assembly workspace
+is retained. Statistics for each equation/species and stencil include
+analysis, refinement and perturbed-pivot counts; they are printed and
+their storage released at run completion.
+
 \item[USE\_MPI] \index{USE\_MPI} Set internally by the {\tt Makefile} and used to identify code necessary for MPI applications
 \item[USE\_PXFGETENV] \index{USE\_PXFGETENV} Uses {\tt PXFGETENV} instead of {\tt GETENV}
 \item[WINDOWS] \index{WINDOWS} To be used when compiling on a Windows system
@@ -21662,6 +21687,7 @@ JET & preprocessing/b2ardr.F \\
 LEGACYCOMP & convert/b2cdftallies2mds.F \\
 LEGACYCOMP & ids/b2mod\_ual.F90 \\
 LEGACYCOMP & modules/b2mod\_mdsplus.F \\
+LEGACYCOMP & modules/b2mod\_pardiso.F90 \\
 LEGACYCOMP & modules/b2mod\_running\_average.F \\
 LEGACYCOMP & postprocessing/b2ye.F \\
 LEGACYCOMP & sources/b2sifr\_.F \\
@@ -21834,6 +21860,7 @@ NO\_SAVE & include/EIRDIAG.H \\
 \_OPENMP & modules/b2mod\_ma28\_for\_7diag.F \\
 \_OPENMP & modules/b2mod\_ma28\_for\_9diag.F \\
 \_OPENMP & modules/b2mod\_openmp.F \\
+\_OPENMP & modules/b2mod\_pardiso.F90 \\
 \_OPENMP & modules/b2mod\_sputter.F \\
 \_OPENMP & modules/b2mod\_ysmp\_sdrv.F \\
 \_OPENMP & solvers/b2unavspr7a.F \\
@@ -21940,6 +21967,7 @@ PLPLOT & utility/pagini.F \\
 PSR & modules/b2mod\_b2plot.F \\
 PSR & modules/b2mod\_elements.F \\
 PSR & modules/b2mod\_sputter.F \\
+SOLPS\_PARDISO & modules/b2mod\_pardiso.F90 \\
 SOLPS4\_3 & modules/b2mod\_b2\_to\_astra.F \\
 SOLPS4\_3 & modules/b2mod\_diag.F \\
 SOLPS4\_3 & modules/b2mod\_mwti.F90 \\
